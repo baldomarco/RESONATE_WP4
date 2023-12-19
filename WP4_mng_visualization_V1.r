@@ -1723,11 +1723,11 @@ new_order_gg<- new_order_gg.all[new_order_gg.all %in% species.we.have]
 # STARTING PLOTS
 
 # column diagram
-ggplot(removals, aes(year, volume, fill=factor(type, levels=c( "regcut","finalcut","thinning"))))+
+ggplot(removals, aes(year, volume, fill=factor(type, levels=c( "regcut","salvaged","finalcut","thinning"))))+
   geom_bar(position="stack", stat="identity")+
   facet_wrap(~run, ncol=2)+
   labs(x = "Year",y="Removed volume m3/ha",fill = "Removal")+
-  scale_fill_manual(values=c("#4897D8","#FFDB5C","#FA6E59"))+               #"#B7B8B6","#34675C","#B3C100" grey and greens
+  scale_fill_manual(values=c("#4897D8","limegreen","#FFDB5C","#FA6E59"))+               #"#B7B8B6","#34675C","#B3C100" grey and greens
   theme_bw()
 
 # Make a plot with ggplot, volume, colored by species for the transitional period for Clear cut management system
