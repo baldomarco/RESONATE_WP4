@@ -158,9 +158,6 @@ g2 <- ggplot(landscape_bioec, aes(year,volume_m3, fill=factor(species, levels=ne
   theme(plot.title = element_text(hjust = 0.5))+
   ylim(0,600)
 
-#grid.arrange(g1,g2,ncol=2)
-grid.arrange(g1,g2,ncol=1)
-
 #______________________________________________
 # TP in only wind regime
 
@@ -182,15 +179,11 @@ g4 <- ggplot(landscape_adp, aes(year,volume_m3, fill=factor(species, levels=new_
   theme(plot.title = element_text(hjust = 0.5))+
   ylim(0,600)
 
-#grid.arrange(g1,g2,ncol=2)
-grid.arrange(g3,g4,ncol=2)
-
 #______________________________________________
 # All the 4 graphics together
 
 grid.arrange(g1,g2,g3,g4,ncol=2)
 
-grid.arrange(x2,x4,ncol=2)
 
 #______________________________________________
 # HARVEST TIME SERIES IN wind and bark beetle DISTURBANCE REGIME
