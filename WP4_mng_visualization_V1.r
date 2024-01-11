@@ -10,8 +10,8 @@ dataroot <- ("C:/iLand/2023/WP4_Resonate/Resonate_WP4_exp/output/")
 #------------------------------------------------------------
 # 1ST 2 DATABASE - BUSINESS AS USUAL + BIOECONOMY MANAGEMENT
 
-BAU_V1 <-paste0(dataroot,"BAU_WP4_20231215.sqlite")   # file to read
-BIOEC_V1 <-paste0(dataroot,"BIOECONOMY_WP4_20221215.sqlite")   # file to read
+BAU_V1 <-paste0(dataroot,"BAU_WP4_20231223.sqlite")   # file to read
+BIOEC_V1 <-paste0(dataroot,"BIOECONOMY_WP4_20221223.sqlite")   # file to read
 
 #_____________________________________________________
 # connect to the database of BAU
@@ -35,7 +35,7 @@ abeUnit_bau <- dbReadTable(db1, "abeUnit")
 barkbeetle_bau <- dbReadTable(db1,"barkbeetle")
 carbon_bau <- dbReadTable(db1,"carbon")
 carbonflow_bau <- dbReadTable(db1, "carbonflow")
-#dynamicstand_bau <- dbReadTable(db1, "dynamicstand")
+dynamicstand_bau <- dbReadTable(db1, "dynamicstand")
 landscape_bau <- dbReadTable(db1,"landscape")
 wind_bau <- dbReadTable(db1,"wind")
 dbDisconnect(db1)    # close the file
@@ -47,17 +47,17 @@ abeUnit_bioec <- dbReadTable(db2, "abeUnit")
 barkbeetle_bioec <- dbReadTable(db2,"barkbeetle")
 carbon_bioec <- dbReadTable(db2,"carbon")
 carbonflow_bioec <- dbReadTable(db2, "carbonflow")
-#dynamicstand_bioec <- dbReadTable(db2, "dynamicstand")
+dynamicstand_bioec <- dbReadTable(db2, "dynamicstand")
 landscape_bioec <- dbReadTable(db2,"landscape")
 wind_bioec <- dbReadTable(db2,"wind")
 dbDisconnect(db2)    # close the file
 #_____________________________________________________
-#------------------------------------------------------------
 # 2ND  DATABASE - CONSERVATION + ADAPTATION MANAGEMENT
+#------------------------------------------------------------
 
 # 2 Name of the database
-CNS_V1 <-paste0(dataroot,"CONSERVATION_WP4_20231215.sqlite")   # file to read
-ADP_V1 <-paste0(dataroot,"ADAPTATION_WP4_20231215.sqlite")   # file to read
+CNS_V1 <-paste0(dataroot,"CONSERVATION_WP4_20231223.sqlite")   # file to read
+ADP_V1 <-paste0(dataroot,"ADAPTATION_WP4_20231223.sqlite")   # file to read
 
 # connect to the database COSERVATION
 sqlite.driver <- dbDriver("SQLite")
@@ -80,7 +80,7 @@ abeUnit_cns <- dbReadTable(db3, "abeUnit")
 barkbeetle_cns <- dbReadTable(db3,"barkbeetle")
 carbon_cns <- dbReadTable(db3,"carbon")
 carbonflow_cns <- dbReadTable(db3, "carbonflow")
-#dynamicstand_cns <- dbReadTable(db3, "dynamicstand")
+dynamicstand_cns <- dbReadTable(db3, "dynamicstand")
 landscape_cns <- dbReadTable(db3,"landscape")
 wind_cns <- dbReadTable(db3,"wind")
 dbDisconnect(db3)    # close the file
@@ -92,7 +92,7 @@ abeUnit_adp <- dbReadTable(db4, "abeUnit")
 barkbeetle_adp <- dbReadTable(db4,"barkbeetle")
 carbon_adp <- dbReadTable(db4,"carbon")
 carbonflow_adp <- dbReadTable(db4, "carbonflow")
-#dynamicstand_adp <- dbReadTable(db4, "dynamicstand")
+dynamicstand_adp <- dbReadTable(db4, "dynamicstand")
 landscape_adp <- dbReadTable(db4,"landscape")
 wind_adp <- dbReadTable(db4,"wind")
 dbDisconnect(db4)    # close the file
@@ -102,7 +102,7 @@ dbDisconnect(db4)    # close the file
 
 
 # dataroot <- "C:/iLand/2023/20230901_Bottoms_Up/outputs/20231129/"
-pdf(paste0(dataroot, "202312118_mng_wp4_test_corr.pdf"), height=8, width=12)
+pdf(paste0(dataroot, "20231223_mng_wp4_landscape_test.pdf"), height=8, width=12)
 
 #_______________________________________________
 library(ggplot2)
@@ -424,35 +424,36 @@ cumHarv <- cumHarv + theme(axis.title.y = element_text(size = rel(1.8), angle = 
 cumHarv <- cumHarv + theme(axis.title.x = element_text(size = rel(1.8), angle = 00))
 cumHarv
 #___________________________________________________________________________
-
-
 #------------------------------------------------------------
 # Yearly increment on the landscape 
+landscape_bau_inc <- landscape_bau %>%
+  group_by(year) %>%
+  summarise(volume_m3 = sum(volume_m3)) %>%
+  filter(year < max(year))
+
+landscape_bioec_inc <- landscape_bau %>%
+  group_by(year) %>%
+  summarise(volume_m3 = sum(volume_m3)) %>%
+  filter(year < max(year))
 
 
-inc1<-data.frame(year=landscape_bau$year, volume_inc=abeUnit_bau$realizedHarvest, case="bau")
-inc2<-data.frame(year=landscape_bioec$year, volume_inc=abeUnit_bioec$realizedHarvest, case="bioec")
+inc_bau<-data.frame(year=landscape_bau_inc$year, volume_m3 = landscape_bau_inc$volume_m3, volume_hrv=abeUnit_bau$realizedHarvest, case="bau")
+inc_bioec<-data.frame(year=landscape_bioec_inc$year, volume_m3 = landscape_bioec_inc$volume_m3, volume_hrv=abeUnit_bioec$realizedHarvest, case="bioec")
 
-harvests<- rbind(a1,a2)
 
-x1 <- ggplot(harvests, aes(year,harvest, color=case))+
-  geom_line(size=1.2)+
-  ggtitle("Realized transitional period total harvest in wind and bark beetle regime")+
-  #theme(plot.title = element_text(hjust = 0.5))+
-  ylab("Realized harvest [m3/ha]")+
-  ylim(0,15)+
-  theme_bw()
-x1 + theme(plot.title = element_text(hjust = 0.5))
+inc_bau <- inc_bau %>%
+  arrange(year) %>% # Ensure the data is sorted by year
+  mutate(volume_total = volume_m3 + volume_hrv, # Calculate the total volume for each year
+         volume_increment = c(NA, diff(volume_total)), # Calculate the volume increment (difference between consecutive years)
+         index = volume_increment / volume_total) # Calculate the index
 
-x2 <-ggplot(harvests, aes(year,harvest))+
-  geom_line(size=1.2)+
-  facet_wrap(~case, ncol=1)+
-  ggtitle("Realized transitional period total harvest in wind and bark beetle regime")+
-  #theme(plot.title = element_text(hjust = 0.5))+
-  ylab("Realized harvest [m3/ha]")+
-  ylim(0,25)+
-  theme_bw()
-x2 + theme(plot.title = element_text(hjust = 0.5))
+
+inc_bioec <- inc_bioec %>%
+  arrange(year) %>% # Ensure the data is sorted by year
+  mutate(volume_total = volume_m3 + volume_hrv, # Calculate the total volume for each year
+         volume_increment = c(NA, diff(volume_total)), # Calculate the volume increment (difference between consecutive years)
+         index = volume_increment / volume_total) # Calculate the index
+
 #_______________________________________________________________________________
 
 #------------------------------------------------------------
@@ -461,29 +462,29 @@ x2 + theme(plot.title = element_text(hjust = 0.5))
 landscape_bau_0 <- landscape_bau %>% filter(year==0)
 landscape_bau_100 <- landscape_bau %>% filter(year==100)
 landscape_bioec_100 <- landscape_bioec %>% filter(year==100)
-landscape_bau_200 <- landscape_bau %>% filter(year==200)
-landscape_bioec_200 <- landscape_bioec %>% filter(year==200)
-landscape_bau_300 <- landscape_bau %>% filter(year==300)
-landscape_bioec_300 <- landscape_bioec %>% filter(year==300)
-landscape_bau_400 <- landscape_bau %>% filter(year==400)
-landscape_bioec_400 <- landscape_bioec %>% filter(year==400)
+#landscape_bau_200 <- landscape_bau %>% filter(year==200)
+#landscape_bioec_200 <- landscape_bioec %>% filter(year==200)
+#landscape_bau_300 <- landscape_bau %>% filter(year==300)
+#landscape_bioec_300 <- landscape_bioec %>% filter(year==300)
+#landscape_bau_400 <- landscape_bau %>% filter(year==400)
+#landscape_bioec_400 <- landscape_bioec %>% filter(year==400)
 
 b0_initinal<-landscape_bau_0 %>% mutate( sumvol=sum(volume_m3)) %>% mutate(perc.vol=100*volume_m3/sumvol, case="Initial stage")
 b1_bau<-landscape_bau_100 %>% mutate( sumvol=sum(volume_m3)) %>% mutate(perc.vol=100*volume_m3/sumvol, case="BAU year 100")
 b2_bioec<-landscape_bioec_100 %>% mutate( sumvol=sum(volume_m3)) %>% mutate(perc.vol=100*volume_m3/sumvol, case="BIOEC year 100")
-b3_bau<-landscape_bau_200 %>% mutate( sumvol=sum(volume_m3)) %>% mutate(perc.vol=100*volume_m3/sumvol, case="BAU year 200")
-b4_bioec<-landscape_bioec_200 %>% mutate( sumvol=sum(volume_m3)) %>% mutate(perc.vol=100*volume_m3/sumvol, case="BIOEC year 200")
-b5_bau<-landscape_bau_300 %>% mutate( sumvol=sum(volume_m3)) %>% mutate(perc.vol=100*volume_m3/sumvol, case="BAU year 300")
-b6_bioec<-landscape_bioec_300 %>% mutate( sumvol=sum(volume_m3)) %>% mutate(perc.vol=100*volume_m3/sumvol, case="BIOEC year 300")
-b7_bau<-landscape_bau_400 %>% mutate( sumvol=sum(volume_m3)) %>% mutate(perc.vol=100*volume_m3/sumvol, case="BAU year 400")
-b8_bioec<-landscape_bioec_400 %>% mutate( sumvol=sum(volume_m3)) %>% mutate(perc.vol=100*volume_m3/sumvol, case="BIOEC year 400")
+#b3_bau<-landscape_bau_200 %>% mutate( sumvol=sum(volume_m3)) %>% mutate(perc.vol=100*volume_m3/sumvol, case="BAU year 200")
+#b4_bioec<-landscape_bioec_200 %>% mutate( sumvol=sum(volume_m3)) %>% mutate(perc.vol=100*volume_m3/sumvol, case="BIOEC year 200")
+#b5_bau<-landscape_bau_300 %>% mutate( sumvol=sum(volume_m3)) %>% mutate(perc.vol=100*volume_m3/sumvol, case="BAU year 300")
+#b6_bioec<-landscape_bioec_300 %>% mutate( sumvol=sum(volume_m3)) %>% mutate(perc.vol=100*volume_m3/sumvol, case="BIOEC year 300")
+#b7_bau<-landscape_bau_400 %>% mutate( sumvol=sum(volume_m3)) %>% mutate(perc.vol=100*volume_m3/sumvol, case="BAU year 400")
+#b8_bioec<-landscape_bioec_400 %>% mutate( sumvol=sum(volume_m3)) %>% mutate(perc.vol=100*volume_m3/sumvol, case="BIOEC year 400")
 
 #summary(b1)
 #sum(b1$perc.vol)
 
 # SELETION OF THE INITIAL AND FINAL STAGE BAU AND BIOECONOMY
 
-r1wb<-rbind(b0_initinal,b5_bau,b6_bioec)
+r1wb<-rbind(b0_initinal,b1_bau,b2_bioec)
 
 x7wb <- ggplot(r1wb, aes(x="", y=volume_m3, fill=factor(species,levels=new_order_gg))) +
   geom_bar(stat="identity", width=1, show.legend = T) +
@@ -518,29 +519,29 @@ x8wb + theme(plot.title = element_text(hjust = 0.5))
 landscape_cns_0 <- landscape_cns %>% filter(year==0)
 landscape_cns_100 <- landscape_cns %>% filter(year==100)
 landscape_adp_100 <- landscape_adp %>% filter(year==100)
-landscape_cns_200 <- landscape_cns %>% filter(year==200)
-landscape_adp_200 <- landscape_adp %>% filter(year==200)
-landscape_cns_300 <- landscape_cns %>% filter(year==300)
-landscape_adp_300 <- landscape_adp %>% filter(year==300)
-landscape_cns_400 <- landscape_cns %>% filter(year==399)
-landscape_adp_400 <- landscape_adp %>% filter(year==399)
+#landscape_cns_200 <- landscape_cns %>% filter(year==200)
+#landscape_adp_200 <- landscape_adp %>% filter(year==200)
+#landscape_cns_300 <- landscape_cns %>% filter(year==300)
+#landscape_adp_300 <- landscape_adp %>% filter(year==300)
+#landscape_cns_400 <- landscape_cns %>% filter(year==399)
+#landscape_adp_400 <- landscape_adp %>% filter(year==399)
 
 b0_initial<-landscape_cns_0 %>% mutate( sumvol=sum(volume_m3)) %>% mutate(perc.vol=100*volume_m3/sumvol, case="Initial_stage")
 b1_cns<-landscape_cns_100 %>% mutate( sumvol=sum(volume_m3)) %>% mutate(perc.vol=100*volume_m3/sumvol, case="CNS year 100")
 b2_adp<-landscape_adp_100 %>% mutate( sumvol=sum(volume_m3)) %>% mutate(perc.vol=100*volume_m3/sumvol, case="ADP year 100")
-b3_cns<-landscape_cns_200 %>% mutate( sumvol=sum(volume_m3)) %>% mutate(perc.vol=100*volume_m3/sumvol, case="CNS year 200")
-b4_adp<-landscape_adp_200 %>% mutate( sumvol=sum(volume_m3)) %>% mutate(perc.vol=100*volume_m3/sumvol, case="ADP year 200")
-b5_cns<-landscape_cns_300 %>% mutate( sumvol=sum(volume_m3)) %>% mutate(perc.vol=100*volume_m3/sumvol, case="CNS year 300")
-b6_adp<-landscape_adp_300 %>% mutate( sumvol=sum(volume_m3)) %>% mutate(perc.vol=100*volume_m3/sumvol, case="ADP year 300")
-b7_cns<-landscape_cns_400 %>% mutate( sumvol=sum(volume_m3)) %>% mutate(perc.vol=100*volume_m3/sumvol, case="CNS year 400")
-b8_adp<-landscape_adp_400 %>% mutate( sumvol=sum(volume_m3)) %>% mutate(perc.vol=100*volume_m3/sumvol, case="ADP year 400")
+#b3_cns<-landscape_cns_200 %>% mutate( sumvol=sum(volume_m3)) %>% mutate(perc.vol=100*volume_m3/sumvol, case="CNS year 200")
+#b4_adp<-landscape_adp_200 %>% mutate( sumvol=sum(volume_m3)) %>% mutate(perc.vol=100*volume_m3/sumvol, case="ADP year 200")
+#b5_cns<-landscape_cns_300 %>% mutate( sumvol=sum(volume_m3)) %>% mutate(perc.vol=100*volume_m3/sumvol, case="CNS year 300")
+#b6_adp<-landscape_adp_300 %>% mutate( sumvol=sum(volume_m3)) %>% mutate(perc.vol=100*volume_m3/sumvol, case="ADP year 300")
+#b7_cns<-landscape_cns_400 %>% mutate( sumvol=sum(volume_m3)) %>% mutate(perc.vol=100*volume_m3/sumvol, case="CNS year 400")
+#b8_adp<-landscape_adp_400 %>% mutate( sumvol=sum(volume_m3)) %>% mutate(perc.vol=100*volume_m3/sumvol, case="ADP year 400")
 
 #summary(b1)
 #sum(b1$perc.vol)
 
 # SELETION OF THE INITIAL AND FINAL STAGE CONSERVATION AND ADAPTATION
 
-r1w<-rbind(b0_initinal,b5_cns,b6_adp)
+r1w<-rbind(b0_initinal,b1_cns,b2_adp)
 
 x7w <- ggplot(r1w, aes(x="", y=volume_m3, fill=factor(species,levels=new_order_gg))) +
   geom_bar(stat="identity", width=1, show.legend = T) +
@@ -575,12 +576,12 @@ x8w + theme(plot.title = element_text(hjust = 0.5))
 
 # SELETION OF THE INITIAL AND FINAL STAGE
 
-r1w<-rbind(b0_initinal,b5_bau, b6_bioec, b5_cns, b6_adp)
+r1w<-rbind(b0_initinal,b1_bau, b2_bioec, b1_cns, b2_adp)
 
 x7w <- ggplot(r1w, aes(x="", y=volume_m3, fill=factor(species,levels=new_order_gg))) +
   geom_bar(stat="identity", width=1, show.legend = T) +
   scale_fill_manual(values=cols[new_order_gg], guide=guide_legend(reverse=TRUE))+
-  facet_wrap(~case, ncol=2)+
+  facet_wrap(~case, ncol=4)+
   coord_polar("y", start=0) +
   geom_text(aes(label = paste0( round(perc.vol, 1)  )),  position = position_stack(vjust=0.5)) +
   labs(x = NULL, y = NULL, fill = NULL)+
@@ -629,6 +630,7 @@ ba1_wb <-ggplot(data=landscape_bau_ba, aes(x=year, y=basal_area_m2, colour=speci
   ggtitle("BAU management BASAL AREA INTERESTED SPECIES") +
   theme(plot.title = element_text(hjust = 0.5))+
   ylab("Basal area [m2/ha]")+
+  ylim(0,30)+
   theme_bw()
 
 ba2_wb <-ggplot(data=landscape_bioec_ba, aes(x=year, y=basal_area_m2, colour=species)) + 
@@ -637,6 +639,7 @@ ba2_wb <-ggplot(data=landscape_bioec_ba, aes(x=year, y=basal_area_m2, colour=spe
   ggtitle("BIOEC management BASAL AREA INTERESTED SPECIES")+
   theme(plot.title = element_text(hjust = 0.5))+
   ylab("Basal area [m2/ha]")+
+  ylim(0,30)+
   theme_bw()
 
 grid.arrange(ba1_wb,ba2_wb,ncol=1)
@@ -658,6 +661,7 @@ ba3_w <-ggplot(data=landscape_cns_ba, aes(x=year, y=basal_area_m2, colour=specie
   ggtitle("CNS management BASAL AREA INTERESTED SPECIES") +
   theme(plot.title = element_text(hjust = 0.5))+
   ylab("Basal area [m2/ha]")+
+  ylim(0,30)+
   theme_bw()
 
 ba4_w <-ggplot(data=landscape_adp_ba, aes(x=year, y=basal_area_m2, colour=species)) + 
@@ -666,6 +670,7 @@ ba4_w <-ggplot(data=landscape_adp_ba, aes(x=year, y=basal_area_m2, colour=specie
   ggtitle("ADP management BASAL AREA INTERESTED SPECIES")+
   theme(plot.title = element_text(hjust = 0.5))+
   ylab("Basal area [m2/ha]")+
+  ylim(0,30)+
   theme_bw()
 
 grid.arrange(ba3_w,ba4_w,ncol=1)
@@ -690,43 +695,43 @@ new_order_gg2=c("piab", "abal", "lade", "pisy", "fasy", "quro", "acps", "frex", 
 # IN BAU AND BIOECONOMY
 
 dynamicstand_bioec_0 <- dynamicstand_bioec %>% filter(year==0)
-dynamicstand_bau_300 <- dynamicstand_bau %>% filter(year==300)
-dynamicstand_bioec_300 <- dynamicstand_bioec %>% filter(year==300)
+dynamicstand_bau_100 <- dynamicstand_bau %>% filter(year==100)
+dynamicstand_bioec_100 <- dynamicstand_bioec %>% filter(year==100)
 
 ba_dbh_bioec_0 <- dynamicstand_bioec_0[,8:24]
-ba_dbh_bau_300 <- dynamicstand_bau_300[,8:24]
-ba_dbh_bioec_300 <- dynamicstand_bioec_300[,8:24]
+ba_dbh_bau_100 <- dynamicstand_bau_100[,8:24]
+ba_dbh_bioec_100 <- dynamicstand_bioec_100[,8:24]
 
 row.names(ba_dbh_bioec_0) <- dynamicstand_bioec_0$species
 colnames(ba_dbh_bioec_0) <- c("DBH5","DBH10","DBH15","DBH20","DBH25","DBH30","DBH35","DBH40","DBH45","DBH50","DBH55","DBH60","DBH65","DBH70","DBH75","DBH80","DBH_max")
-row.names(ba_dbh_bioec_300) <- dynamicstand_bioec_300$species
-colnames(ba_dbh_bioec_300) <- c("DBH5","DBH10","DBH15","DBH20","DBH25","DBH30","DBH35","DBH40","DBH45","DBH50","DBH55","DBH60","DBH65","DBH70","DBH75","DBH80","DBH_max")
-row.names(ba_dbh_bau_300) <- dynamicstand_bau_300$species
-colnames(ba_dbh_bau_300) <- c("DBH5","DBH10","DBH15","DBH20","DBH25","DBH30","DBH35","DBH40","DBH45","DBH50","DBH55","DBH60","DBH65","DBH70","DBH75","DBH80","DBH_max")
+row.names(ba_dbh_bioec_100) <- dynamicstand_bioec_100$species
+colnames(ba_dbh_bioec_100) <- c("DBH5","DBH10","DBH15","DBH20","DBH25","DBH30","DBH35","DBH40","DBH45","DBH50","DBH55","DBH60","DBH65","DBH70","DBH75","DBH80","DBH_max")
+row.names(ba_dbh_bau_100) <- dynamicstand_bau_100$species
+colnames(ba_dbh_bau_100) <- c("DBH5","DBH10","DBH15","DBH20","DBH25","DBH30","DBH35","DBH40","DBH45","DBH50","DBH55","DBH60","DBH65","DBH70","DBH75","DBH80","DBH_max")
 
 
 ba_dbh_bioec_0<-ba_dbh_bioec_0/area       # divide by the area because of the dynamic stand output
-ba_dbh_bioec_300<-ba_dbh_bioec_300/area   # divide by the area because of the dynamic stand output
-ba_dbh_bau_300<-ba_dbh_bau_300/area   # divide by the area because of the dynamic stand output
+ba_dbh_bioec_100<-ba_dbh_bioec_100/area   # divide by the area because of the dynamic stand output
+ba_dbh_bau_100<-ba_dbh_bau_100/area   # divide by the area because of the dynamic stand output
 
 
 par(mfrow=c(3,1))
 par(mar=c(4,4,4,15))
-barplot(as.matrix(ba_dbh_bioec_0), col = cols[new_order_gg2], ylab = "Basal area [m3/ha]", ylim=c(0,5), main = "Basal area of initial forest stage", cex.main=1, cex.lab=1)
+barplot(as.matrix(ba_dbh_bioec_0), col = cols[new_order_gg2], ylab = "Basal area [m2/ha]", ylim=c(0,100), main = "Basal area of initial forest stage", cex.main=1, cex.lab=1)
 #legend("topright",                                
 #       legend = new_order_gg2,
 #       cex=0.9,
 #       fill = cols[new_order_gg2])
 
 
-barplot(as.matrix(ba_dbh_bau_300), col = cols[new_order_gg2], ylab = "Basal area [m3/ha]",  ylim=c(0,5),main = "Basal area of forest at age 400 CC", cex.main=1, cex.lab=1)
+barplot(as.matrix(ba_dbh_bau_100), col = cols[new_order_gg2], ylab = "Basal area [m3/ha]",  ylim=c(0,5),main = "Basal area of forest at age 400 CC", cex.main=1, cex.lab=1)
 #legend("topright",                                
 #       legend = new_order_gg2,
 #       cex=0.9,
 #       fill = cols[new_order_gg2])
 
 
-barplot(as.matrix(ba_dbh_bioec_300), col = cols[new_order_gg2], ylab = "Basal area [m3/ha]",  ylim=c(0,5), main = "Basal area of forest at age 400 SW", cex.main=1, cex.lab=1)
+barplot(as.matrix(ba_dbh_bioec_100), col = cols[new_order_gg2], ylab = "Basal area [m3/ha]",  ylim=c(0,5), main = "Basal area of forest at age 400 SW", cex.main=1, cex.lab=1)
 #legend("topright",                                
 #       legend = new_order_gg2,
 #       cex=0.9,
@@ -833,7 +838,7 @@ barplot(as.matrix(ba_dbh_sw_400), col = cols[new_order_gg2], ylab = "Basal area 
 legend(21,12.5,legend = new_order_gg2,cex=0.9,fill = cols[new_order_gg2], xpd = NA)
 
 #_______________________________________________________________________________
-
+#---------------
 
 library(RColorBrewer)
 display.brewer.all()
@@ -1254,12 +1259,12 @@ legend("topright",
 
 #_____________________________________________________________________________________________________
 #----------------------------------------------------------------
-{# wind only disturbance impact in the landscape volume in percentages
+# wind only disturbance impact in the landscape volume in percentages
 # BAU AND BIOECONOMY
 
 killed_volume_bau <- sum(wind_bau$killedVolume)                # 1601620 m3
 killed_volume_bau
-killed_volume_per_year_bau <- killed_volume_bau/300            # 4014.085
+killed_volume_per_year_bau <- killed_volume_bau/101            # 4014.085
 killed_volume_per_year_bau
 killed_volume_per_year_bau_ha <- killed_volume_per_year_bau/17749.26
 killed_volume_per_year_bau_ha                                 # 0.226155 m3
@@ -1268,7 +1273,7 @@ killed_volume_per_year_bau_ha                                 # 0.226155 m3
 
 killed_volume_bioec <- sum(wind_bioec$killedVolume)                # 1362593 m3
 killed_volume_bioec
-killed_volume_per_year_bioec <- killed_volume_bioec/300            # 3415.021
+killed_volume_per_year_bioec <- killed_volume_bioec/101            # 3415.021
 killed_volume_per_year_bioec
 killed_volume_per_year_bioec_ha <- killed_volume_per_year_bioec/17749.26
 killed_volume_per_year_bioec_ha                                 # 0.1924036 m3                        
@@ -1293,15 +1298,17 @@ prop_killed_vol_ha_year_bioec <- df_vol_bioec %>% mutate(perc.vol=100*0.1924036/
 
 par(mfrow = c(1,2))
 
-hist(prop_killed_vol_ha_year_bau$perc.vol, main = "Landscape proportion of killed volume (m3/ha) by WIND per year in BAU",cex.main = 1.5, xlab = "Killed volume / Total volume (%)", ylab = "Frequency (years)",cex.lab = 1.4, col="lightblue", breaks = "FD", ylim = c(0,140))
+hist(prop_killed_vol_ha_year_bau$perc.vol, main = "Landscape proportion of killed volume (m3/ha) by WIND per year in BAU",cex.main = 1.5, xlab = "Killed volume / Total volume (%)", ylab = "Frequency (years)",cex.lab = 1.4, col="lightblue", breaks = "FD", ylim = c(0,40))
 
-legend("topright", c("0.7054835 m3"), cex = 0.9, title = "Average killed volume (m3/ha) per year", text.font = 3, bg='lightpink')
+legend("topright", c("0.5974279 m3"), cex = 0.9, title = "Average killed volume (m3/ha) per year", text.font = 3, bg='lightpink')
 
 # legend("topleft",c("sample1","sample2"),cex=.8,col=c("red","blue"),pch=c(1,2),box.col="green", title="sample types", text.font=4,  bg='lightblue')
 
-hist(prop_killed_vol_ha_year_bioec$perc.vol, main = "Landscape proportion of killed volume (m3/ha) by WIND per year in BIOEC",cex.main = 1.5, xlab = "Killed volume / Total volume (%)", ylab = "Frequency (years)",cex.lab = 1.4, col="lightblue", breaks = "FD", ylim = c(0,140))
+hist(prop_killed_vol_ha_year_bioec$perc.vol, main = "Landscape proportion of killed volume (m3/ha) by WIND per year in BIOEC",cex.main = 1.5, xlab = "Killed volume / Total volume (%)", ylab = "Frequency (years)",cex.lab = 1.4, col="lightblue", breaks = "FD", ylim = c(0,40))
 
-legend("topright", c("0.5112707 m3"), cex = 0.9, title = "Average killed volume (m3/ha) per year", text.font = 3, bg='lightpink')}
+legend("topright", c("0.4682009 m3"), cex = 0.9, title = "Average killed volume (m3/ha) per year", text.font = 3, bg='lightpink')
+
+
 #____________________________________________________________________________________________________________________________________
 {### year by year relative proportion  ONLY BARK BEETLES##
   
@@ -1343,7 +1350,7 @@ killed_volume_bau_bb_wb <- sum(barkbeetle_bau$killedVolume)                   # 
 killed_volume_bau_bb_wb
 killed_volume_bau_dist_wb <- killed_volume_bau_wb + killed_volume_bau_bb_wb   # 10636200
 killed_volume_bau_dist_wb
-killed_volume_per_year_bau <- killed_volume_bau_dist_wb/300                   # 26590.5 
+killed_volume_per_year_bau <- killed_volume_bau_dist_wb/100                   # 26590.5 
 killed_volume_per_year_bau
 killed_volume_per_year_bau_ha_wb <- killed_volume_per_year_bau/17749.26
 killed_volume_per_year_bau_ha_wb                                              # 1.498119 m3   # 1.747298
@@ -1356,7 +1363,7 @@ killed_volume_bioec_bb_wb <- sum(barkbeetle_bioec$killedVolume)               # 
 killed_volume_bioec_bb_wb
 killed_volume_bioec_dist_wb <- killed_volume_bioec_wb + killed_volume_bioec_bb_wb  # 9795297
 killed_volume_bioec_dist_wb
-killed_volume_per_year_bioec <- killed_volume_bioec_dist_wb/300               # 24488.24
+killed_volume_per_year_bioec <- killed_volume_bioec_dist_wb/100               # 24488.24
 killed_volume_per_year_bioec
 killed_volume_per_year_bioec_ha_wb <- killed_volume_per_year_bioec/17749.26
 killed_volume_per_year_bioec_ha_wb                                            # 1.379677 m3                       
@@ -1387,15 +1394,15 @@ summary(prop_killed_vol_ha_year_bioec)
 
 par(mfrow = c(1,2))
 
-hist(prop_killed_vol_ha_year_bau$perc.vol, main = "Landscape proportion of killed volume [m3/ha] by wind and bark beetles per year in BAU",cex.main = 1, xlab = "[Killed volume / Total volume] = [%]", ylab = "Frequency [years]",cex.lab = 1, col="lightblue", breaks = "FD", ylim = c(0,90))
+hist(prop_killed_vol_ha_year_bau$perc.vol, main = "Landscape proportion of killed volume [m3/ha] by wind and bark beetles per year in BAU",cex.main = 1, xlab = "[Killed volume / Total volume] = [%]", ylab = "Frequency [years]",cex.lab = 1, col="lightblue", breaks = "FD", ylim = c(0,40))
 
-legend("topright", c("1.577 m3 / 0.4641 %"), cex = 0.55, title = "Average killed volume [m3/ha/year] / avarage % on total volume", text.font = 3, bg='lightpink')
+legend("topright", c("1.131803 m3 / 0.3660 %"), cex = 0.55, title = "Average killed volume [m3/ha/year] / avarage % on total volume", text.font = 3, bg='lightpink')
 
 # legend("topleft",c("sample1","sample2"),cex=.8,col=c("red","blue"),pch=c(1,2),box.col="green", title="sample types", text.font=4,  bg='lightblue')
 
-hist(prop_killed_vol_ha_year_bioec$perc.vol, main = "Landscape proportion of killed volume [m3/ha] by wind and bark beetles per year in BIOECONOMY",cex.main = 1, xlab = "[Killed volume / Total volume] = [%]", ylab = "Frequency [years]",cex.lab = 1, col="lightblue", breaks = "FD", ylim = c(0,90))
+hist(prop_killed_vol_ha_year_bioec$perc.vol, main = "Landscape proportion of killed volume [m3/ha] by wind and bark beetles per year in BIOECONOMY",cex.main = 1, xlab = "[Killed volume / Total volume] = [%]", ylab = "Frequency [years]",cex.lab = 1, col="lightblue", breaks = "FD", ylim = c(0,40))
 
-legend("topright", c("1.145 m3 / 0.369 %"), cex = 0.55, title = "Average killed volume [m3/ha/year] / avarage % on total volume", text.font = 3, bg='lightpink')
+legend("topright", c("0.9346 m3 / 0.3111 %"), cex = 0.55, title = "Average killed volume [m3/ha/year] / avarage % on total volume", text.font = 3, bg='lightpink')
 
 #_________________________________________________________________________________________________
 # KILLED VOLUME PROPORTION IN CONSERVATION AND ADAPTATION
@@ -1464,7 +1471,7 @@ killed_volume_cns_bb_wb <- sum(barkbeetle_cns$killedVolume)                   # 
 killed_volume_cns_bb_wb
 killed_volume_cns_dist_wb <- killed_volume_cns_wb + killed_volume_cns_bb_wb   # 10636200
 killed_volume_cns_dist_wb
-killed_volume_per_year_cns <- killed_volume_cns_dist_wb/300                   # 26590.5 
+killed_volume_per_year_cns <- killed_volume_cns_dist_wb/100                   # 26590.5 
 killed_volume_per_year_cns
 killed_volume_per_year_cns_ha_wb <- killed_volume_per_year_cns/17749.26
 killed_volume_per_year_cns_ha_wb                                              # 1.498119 m3   # 1.747298
@@ -1477,7 +1484,7 @@ killed_volume_adp_bb_wb <- sum(barkbeetle_adp$killedVolume)               # 4388
 killed_volume_adp_bb_wb
 killed_volume_adp_dist_wb <- killed_volume_adp_wb + killed_volume_adp_bb_wb  # 9795297
 killed_volume_adp_dist_wb
-killed_volume_per_year_adp <- killed_volume_adp_dist_wb/300               # 24488.24
+killed_volume_per_year_adp <- killed_volume_adp_dist_wb/100               # 24488.24
 killed_volume_per_year_adp
 killed_volume_per_year_adp_ha_wb <- killed_volume_per_year_adp/17749.26
 killed_volume_per_year_adp_ha_wb                                            # 1.379677 m3                       
@@ -1508,15 +1515,15 @@ summary(prop_killed_vol_ha_year_adp)
 
 par(mfrow = c(1,2))
 
-hist(prop_killed_vol_ha_year_cns$perc.vol, main = "Landscape proportion of killed volume [m3/ha] by wind and bark beetles per year in CONSERVATION",cex.main = 1, xlab = "[Killed volume / Total volume] = [%]", ylab = "Frequency [years]",cex.lab = 1, col="lightblue", breaks = "FD", ylim = c(0,90))
+hist(prop_killed_vol_ha_year_cns$perc.vol, main = "Landscape proportion of killed volume [m3/ha] by wind and bark beetles per year in CONSERVATION",cex.main = 1, xlab = "[Killed volume / Total volume] = [%]", ylab = "Frequency [years]",cex.lab = 1, col="lightblue", breaks = "FD", ylim = c(0,40))
 
-legend("topright", c("1.823 m3 / 0.4826 %"), cex = 0.55, title = "Average killed volume [m3/ha/year] / avarage % on total volume", text.font = 3, bg='lightpink')
+legend("topright", c("1.6354 m3 / 0.4967 %"), cex = 0.55, title = "Average killed volume [m3/ha/year] / avarage % on total volume", text.font = 3, bg='lightpink')
 
 # legend("topleft",c("sample1","sample2"),cex=.8,col=c("red","blue"),pch=c(1,2),box.col="green", title="sample types", text.font=4,  bg='lightblue')
 
-hist(prop_killed_vol_ha_year_adp$perc.vol, main = "Landscape proportion of killed volume [m3/ha] by wind and bark beetles per year in ADAPTATION",cex.main = 1, xlab = "[Killed volume / Total volume] = [%]", ylab = "Frequency [years]",cex.lab = 1, col="lightblue", breaks = "FD", ylim = c(0,90))
+hist(prop_killed_vol_ha_year_adp$perc.vol, main = "Landscape proportion of killed volume [m3/ha] by wind and bark beetles per year in ADAPTATION",cex.main = 1, xlab = "[Killed volume / Total volume] = [%]", ylab = "Frequency [years]",cex.lab = 1, col="lightblue", breaks = "FD", ylim = c(0,40))
 
-legend("topright", c("1.0344 m3 / 0.3142 %"), cex = 0.55, title = "Average killed volume [m3/ha/year] / avarage % on total volume", text.font = 3, bg='lightpink')
+legend("topright", c("0.9423 m3 / 0.3280 %"), cex = 0.55, title = "Average killed volume [m3/ha/year] / avarage % on total volume", text.font = 3, bg='lightpink')
 
 
 # ALL THE 4 GRAPHS TOGETHER
@@ -1531,17 +1538,17 @@ legend("topright", c("1.577 m3 / 0.4641 %"), cex = 0.55, title = "Average killed
 # BIOECONOMY
 hist(prop_killed_vol_ha_year_bioec$perc.vol, main = "Landscape proportion of killed volume [m3/ha] by wind and bark beetles per year in BIOECONOMY",cex.main = 1, xlab = "[Killed volume / Total volume] = [%]", ylab = "Frequency [years]",cex.lab = 1, col="lightblue", breaks = "FD", ylim = c(0,90))
 
-legend("topright", c("1.145 m3 / 0.369 %"), cex = 0.55, title = "Average killed volume [m3/ha/year] / avarage % on total volume", text.font = 3, bg='lightpink')
+legend("topright", c("1.193 m3 / 0.381 %"), cex = 0.55, title = "Average killed volume [m3/ha/year] / avarage % on total volume", text.font = 3, bg='lightpink')
 
 # CONSERVATION
 hist(prop_killed_vol_ha_year_cns$perc.vol, main = "Landscape proportion of killed volume [m3/ha] by wind and bark beetles per year in CONSERVATION",cex.main = 1, xlab = "[Killed volume / Total volume] = [%]", ylab = "Frequency [years]",cex.lab = 1, col="lightblue", breaks = "FD", ylim = c(0,90))
 
-legend("topright", c("1.823 m3 / 0.4826 %"), cex = 0.55, title = "Average killed volume [m3/ha/year] / avarage % on total volume", text.font = 3, bg='lightpink')
+legend("topright", c("1.679 m3 / 0.4365 %"), cex = 0.55, title = "Average killed volume [m3/ha/year] / avarage % on total volume", text.font = 3, bg='lightpink')
 
 # ADAPTATION
 hist(prop_killed_vol_ha_year_adp$perc.vol, main = "Landscape proportion of killed volume [m3/ha] by wind and bark beetles per year in ADAPTATION",cex.main = 1, xlab = "[Killed volume / Total volume] = [%]", ylab = "Frequency [years]",cex.lab = 1, col="lightblue", breaks = "FD", ylim = c(0,90))
 
-legend("topright", c("1.0344 m3 / 0.3142 %"), cex = 0.55, title = "Average killed volume [m3/ha/year] / avarage % on total volume", text.font = 3, bg='lightpink')
+legend("topright", c("1.172 m3 / 0.381 %"), cex = 0.55, title = "Average killed volume [m3/ha/year] / avarage % on total volume", text.font = 3, bg='lightpink')
 
 #_______________________________________________________________________________
 
@@ -1567,7 +1574,7 @@ lnd<-c()
 aUnit<-c()
 
 # NAMES OF THE DATABESES VARIABLES
-cases <-c("BAU_WP4_20231215", "BIOECONOMY_WP4_20221215","CONSERVATION_WP4_20231215","ADAPTATION_WP4_20231215")
+cases <-c("BAU_WP4_20231215", "BIOECONOMY_WP4_20221219","CONSERVATION_WP4_20231219","ADAPTATION_WP4_20231219")
 
 #cases <- c("SW9","SW10","SW11","SW12")
 
