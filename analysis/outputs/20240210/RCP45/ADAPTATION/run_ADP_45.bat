@@ -1,0 +1,4 @@
+ilandc.exe ADAPTATION_WP4_V9_wind_V5_EC_EARTH_RACMO22E_r1_rcp45_test10.xml 100
+ilandc.exe ADAPTATION_WP4_V9_wind_V5_HadGEM2_CCLM_rcp45_test10.xml 100
+ilandc.exe ADAPTATION_WP4_V9_wind_V5_MPI_CCLM_rcp45_test10.xml 100
+ilandc.exe ADAPTATION_WP4_V9_wind_V5_NCC_HIRHAM5_rcp45_test10.xml 100

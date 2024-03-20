@@ -1,0 +1,17 @@
+"","run","type","volume"
+"1","ADAPTATION_WP4_V9_wind_V5_EC_EARTH_RACMO22E_r1_rcp85_test10.sqlite","finalcut",2.59219283136689
+"2","ADAPTATION_WP4_V9_wind_V5_EC_EARTH_RACMO22E_r1_rcp85_test10.sqlite","regcut",3.55133855947683
+"3","ADAPTATION_WP4_V9_wind_V5_EC_EARTH_RACMO22E_r1_rcp85_test10.sqlite","salvaged",1.54392547671301
+"4","ADAPTATION_WP4_V9_wind_V5_EC_EARTH_RACMO22E_r1_rcp85_test10.sqlite","thinning",2.41791291537445
+"5","ADAPTATION_WP4_V9_wind_V5_HadGEM2_CCLM_rcp85_test10.sqlite","finalcut",2.24930979138101
+"6","ADAPTATION_WP4_V9_wind_V5_HadGEM2_CCLM_rcp85_test10.sqlite","regcut",2.6720729564685
+"7","ADAPTATION_WP4_V9_wind_V5_HadGEM2_CCLM_rcp85_test10.sqlite","salvaged",1.24810275311655
+"8","ADAPTATION_WP4_V9_wind_V5_HadGEM2_CCLM_rcp85_test10.sqlite","thinning",1.71653403935739
+"9","ADAPTATION_WP4_V9_wind_V5_MPI_CCLM_rcp85_test10.sqlite","finalcut",2.42042854215291
+"10","ADAPTATION_WP4_V9_wind_V5_MPI_CCLM_rcp85_test10.sqlite","regcut",3.04302117594815
+"11","ADAPTATION_WP4_V9_wind_V5_MPI_CCLM_rcp85_test10.sqlite","salvaged",1.29416211266843
+"12","ADAPTATION_WP4_V9_wind_V5_MPI_CCLM_rcp85_test10.sqlite","thinning",2.0166915489377
+"13","ADAPTATION_WP4_V9_wind_V5_NCC_HIRHAM5_rcp85_test10.sqlite","finalcut",2.50700305157823
+"14","ADAPTATION_WP4_V9_wind_V5_NCC_HIRHAM5_rcp85_test10.sqlite","regcut",3.12738731752344
+"15","ADAPTATION_WP4_V9_wind_V5_NCC_HIRHAM5_rcp85_test10.sqlite","salvaged",1.22195714971412
+"16","ADAPTATION_WP4_V9_wind_V5_NCC_HIRHAM5_rcp85_test10.sqlite","thinning",2.16245152312566

@@ -1,0 +1,17 @@
+"","run","type","volume"
+"1","ADAPTATION_WP4_V9_wind_V5_historical_clim_test10.sqlite","finalcut",2.34549440321038
+"2","ADAPTATION_WP4_V9_wind_V5_historical_clim_test10.sqlite","regcut",2.94561977423306
+"3","ADAPTATION_WP4_V9_wind_V5_historical_clim_test10.sqlite","salvaged",0.810067538486766
+"4","ADAPTATION_WP4_V9_wind_V5_historical_clim_test10.sqlite","thinning",2.00135173235038
+"5","BAU_WP4_V9_wind_V5_historical_clim_test10.sqlite","finalcut",1.71760491753608
+"6","BAU_WP4_V9_wind_V5_historical_clim_test10.sqlite","regcut",3.10558459481297
+"7","BAU_WP4_V9_wind_V5_historical_clim_test10.sqlite","salvaged",1.10614911259457
+"8","BAU_WP4_V9_wind_V5_historical_clim_test10.sqlite","thinning",1.98990160107747
+"9","BIOECONOMY_WP4_V9_wind_V5_historical_clim_test10.sqlite","finalcut",4.32101059823861
+"10","BIOECONOMY_WP4_V9_wind_V5_historical_clim_test10.sqlite","regcut",0.56812103291388
+"11","BIOECONOMY_WP4_V9_wind_V5_historical_clim_test10.sqlite","salvaged",0.697988683703663
+"12","BIOECONOMY_WP4_V9_wind_V5_historical_clim_test10.sqlite","thinning",2.62760927812595
+"13","CONSERVATION_WP4_V13_wind_V5_historical_clim_test10.sqlite","finalcut",0.869991866625513
+"14","CONSERVATION_WP4_V13_wind_V5_historical_clim_test10.sqlite","regcut",2.37156679073066
+"15","CONSERVATION_WP4_V13_wind_V5_historical_clim_test10.sqlite","salvaged",0.670072652798094
+"16","CONSERVATION_WP4_V13_wind_V5_historical_clim_test10.sqlite","thinning",1.44666473673688
