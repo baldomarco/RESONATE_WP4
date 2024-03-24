@@ -16,17 +16,51 @@ library(fields)
 # Path to search the data
 dataroot <- "E:/2023/WP4_Resonate/outputs/20240210/ANAL/"
 
-# CREATE NEW EMPTY DATAFRAME
+# CREATE NEW EMPTY VECTORS FOR OUR DATASET OF INTEREST (DOT)
+
+# WOOD REMOVED BY MANAGEMENT
 removals <- c()
+
+# AGGREGATED AT LANDSCAPE THE MAIN FOREST INFORMATION BY SPECIES
 lnd <- c()
+
+# DETAILED INFORMATION ON FOREST MANAGEMENT (ABE) ACTIVITIES PER RESOURCE UNIT
 aUnit <- c()
+
+# BARK BEETLE
 bb <-c()
+
+# WIND
 w <- c()
+
+# DISTURBANCE DAMAGES
 damage.all<-c()
+
+# TABLE FOR RESONATE COMMITMENT
 WP4_table <- c()
+
+# SHANNON INDEX PER RU (1ha)
 H <- c()
+
+# SHANNON INDEX AT LANDSCAPE SCALE
 H_avg <- c()
-#dys <- c()
+
+#dys <- c() DISACTIVATED BECAUSE GENERATE LARGE AMOUNT OF DATA BUT CAN BE USED!!
+
+
+# GIVE THE NAMES AT THE RUNS
+scenarios <- c("ADAPTATION HISTORICAL", 
+               "ADAPTATION RCP 4.5",
+               "ADAPTATION RCP 8.5",
+               "BAU HISTORICAL",
+               "BAU RCP 4.5",
+               "BAU RCP 8.5",
+               "BIOECONOMY HISTORICAL",
+               "BIOECONOMY RCP 4.5",
+               "BIOECONOMY RCP 8.5",
+               "CONSERVATION HISTORICAL",
+               "CONSERVATION RCP 4.5",
+               "CONSERVATION RCP 8.5")
 
 # FOR CYCLE FOR THE IMPORT AND ANALYSIS OF THE LANDSCAPE VOLUME AND VOLUME HARVESTED
 all_v <- list.files(dataroot, ".sqlite") 
@@ -41,7 +75,7 @@ for (i in (1:length(all_v)))  {
   print(file)
   
   # Assign a case for every single dataframe 
-  case<-all_v[i]
+  case <- scenarios[i]
   
   # connect to the database
   sqlite.driver <- dbDriver("SQLite")
@@ -56,7 +90,7 @@ for (i in (1:length(all_v)))  {
   landscape_removed <- dbReadTable(db1,"landscape_removed")
   barkbeetle <- dbReadTable(db1,"barkbeetle")
   wind <- dbReadTable(db1,"wind")
-  dynamicstand <- dbReadTable(db1, "dynamicstand")
+  dynamicstand <- dbReadTable(db1, "dynamicstand") # dys <- c() with it in case line 48. Add at the end of the loop the required dataset formation
   
   # close the database connection
   dbDisconnect(db1)    
@@ -136,7 +170,7 @@ for (i in (1:length(all_v)))  {
   # Here I filter only the listed activity names and calculate thinning/finalcut values for every year 
   # (each line is per ha for a stand, so I scale with the area, sum up all the harvest on the landscape and then divide it with the whole area to get again per ha)
   
-  ab.salvaged <- data.frame(abeStandRemoval %>% filter(activity %in% activity.names.salvaged)    %>% 
+  ab.salvaged <- data.frame(abeStandRemoval %>% filter(activity %in% activity.names.salvager)    %>% 
                               group_by(year)   %>%   summarise(volume=sum(volumeSalvaged*area)/landscape.area, type="salvaged", run=case))
   
   ab.regcuts<- data.frame(abeStandRemoval %>% filter(activity %in% activity.names.sw)    %>% 
@@ -241,35 +275,51 @@ for (i in (1:length(all_v)))  {
   
   #-----------------------------------------------------------------------------
   # Collect landscape data:
-  landscape<- (landscape %>% mutate(run=case))
-  lnd<-rbind(lnd, landscape)
+  landscape <- landscape %>%
+    filter(year <= 80) %>%  # Exclude the last 20 years
+    mutate(run = case)
+  lnd <- rbind(lnd, landscape)
   
   # Collect abeUnit data
-  abeUnit<-(abeUnit %>% mutate(run=case))
-  aUnit<-rbind(aUnit, abeUnit)
+  abeUnit <- abeUnit %>%
+    filter(year <= 80) %>%  # Exclude the last 20 years
+    mutate(run = case)
+  aUnit <- rbind(aUnit, abeUnit)
   
   # Collect barkbeetle data FOR CREATE THE VARIABLE BB FOR ALL THE RUNS
-  barkbeetle <-(barkbeetle %>% mutate(run=case))
-  bb <-rbind(bb, barkbeetle)
+  barkbeetle <- barkbeetle %>%
+    filter(year <= 80) %>%  # Exclude the last 20 years
+    mutate(run = case)
+  bb <- rbind(bb, barkbeetle)
   
   # Collect wind data FOR CREATE THE VARIABLE WIND FOR ALL THE RUNS
-  wind <-(wind %>% mutate(run=case))
-  w <-rbind(w, wind)
+  wind <- wind %>%
+    filter(year <= 80) %>%  # Exclude the last 20 years
+    mutate(run = case)
+  w <- rbind(w, wind)
   
   # CREATE THE VARIABLE DAMAGE FOR ALL THE RUNS
-  damage <-(damage %>% mutate(run=case))
-  damage.all<-rbind(damage.all, damage) 
+  damage <- damage %>%
+    filter(year <= 80) %>%  # Exclude the last 20 years
+    mutate(run = case)
+  damage.all <- rbind(damage.all, damage) 
   
   # CREATE THE VARIABLES FOR RESONATE WP4
-  variables <- (variables%>%mutate(run=case))
+  variables <- variables %>%
+    filter(year <= 80) %>%  # Exclude the last 20 years
+    mutate(run = case)
   WP4_table <- rbind(WP4_table, variables)
   
   # CREATE Shannon index FOR RESONATE WP4
-  shannon_index <- (shannon_index%>%mutate(run=case))
+  shannon_index <- shannon_index %>%
+    filter(year <= 80) %>%  # Exclude the last 20 years
+    mutate(run = case)
   H <- rbind(H, shannon_index)
   
   # Create Shannon index avarages at landscape scale
-  shannon_index_avg <- (shannon_index_avg %>% mutate(run=case))
+  shannon_index_avg <- shannon_index_avg %>%
+    filter(year <= 80) %>%  # Exclude the last 20 years
+    mutate(run = case)
   H_avg <- rbind(H_avg, shannon_index_avg)
   
 }  # end of loop
@@ -281,7 +331,7 @@ write.csv(H_avg, paste0(dataroot,"RESONATE_WP4_H_avg.csv"), row.names = TRUE)
 #-------------------------------------------------------------------------------
 # PDF NAME NEED TO OPEN A PDF WRITER AND GIVE IT THE ROOT, THE NAME, AND THE SIZE
 
-pdf(paste0(dataroot, "Resonate_WP4_data_visualization_2.pdf"), height=8, width=12)
+pdf(paste0(dataroot, "Resonate_WP4_data_visualization_80_years_NEW_COLORS.pdf"), height=8, width=12)
 # pdf(paste0(dataroot, "20220428_sw.pdf"), height=8, width=12)
 # pdf(paste0(dataroot, "20220414c.pdf"), height=10, width=25)
 
@@ -330,13 +380,20 @@ ggplot(removals, aes(year, volume, fill=factor(type, levels=c( "regcut","finalcu
   facet_wrap(~run, ncol=3)+
   labs(x = "Year",y="Removed volume [m3/ha]",fill = "Removal")+
   scale_fill_manual(values=c("#4897D8","#FFDB5C","#FA6E59","#B3C100"))+               #"#B7B8B6","#34675C","#B3C100" grey and greens
-  theme_bw()
+  theme_bw()+
+  theme(
+    panel.grid.major = element_blank(),  # Remove major grid lines
+    panel.grid.minor = element_blank(),  # Remove minor grid lines
+    panel.background = element_blank(),
+    strip.background = element_blank(),
+    strip.placement = "outside"
+  )
 
 # Make a plot with ggplot, volume, colored by species for the transitional period for Clear cut management system
 #-------------------------------------------------------------------------------
 # PLOT LANDSCAPE VOLUME PLOT FOR CASES (GEOM AREA)
 
-g1 <- ggplot(lnd, aes(year,volume_m3, fill=factor(species, levels=new_order_gg)))+
+ggplot(lnd, aes(year,volume_m3, fill=factor(species, levels=new_order_gg)))+
   geom_area() +
   scale_fill_manual(values=cols[new_order_gg], guide=guide_legend(reverse=TRUE))+
   ggtitle("Landscape Volume by species")+
@@ -344,15 +401,22 @@ g1 <- ggplot(lnd, aes(year,volume_m3, fill=factor(species, levels=new_order_gg))
   labs(x = "Year",y="Volume [m3/ha]",fill = "Species")+
   theme(plot.title = element_text(hjust = 0.5))+
   ylim(0,450)+
-  theme_bw()
+  theme_bw()+
+  theme(
+    panel.grid.major = element_blank(),  # Remove major grid lines
+    panel.grid.minor = element_blank(),  # Remove minor grid lines
+    panel.background = element_blank(),
+    strip.background = element_blank(),
+    strip.placement = "outside"
+  )
 
 #------------------------------------------------------------------------------
 # Pie chart year 0
 
 # Filter per the year and create the percentage data frame
 
-pie_chart_sp_comp_start <- lnd %>% filter(run=="BAU_WP4_V9_wind_V5_A_historical_clim.sqlite" & year==0)
-pie_chart_sp_comp_start_per<- pie_chart_sp_comp %>% mutate( sumvol=sum(volume_m3)) %>% mutate(perc.vol=100*volume_m3/sumvol, case="Present forest composition")
+pie_chart_sp_comp_start <- lnd %>% filter(run=="ADAPTATION HISTORICAL" & year==0)
+pie_chart_sp_comp_start_per<- pie_chart_sp_comp_start %>% mutate( sumvol=sum(volume_m3)) %>% mutate(perc.vol=100*volume_m3/sumvol, case="Present forest composition")
 
 pie_chart_sp_comp_final <- lnd %>% filter(year==80)
 pie_chart_sp_comp_final_per<- pie_chart_sp_comp_final %>% group_by(run) %>% mutate( sumvol=sum(volume_m3)) %>% mutate(perc.vol=100*volume_m3/sumvol)
@@ -377,12 +441,13 @@ x7wb + theme(plot.title = element_text(hjust = 0.5))
 x8wb <- ggplot(pie_chart_sp_comp_final_per, aes(x="", y=volume_m3, fill=factor(species,levels=new_order_gg))) +
   geom_bar(stat="identity", width=1, show.legend = F) +
   scale_fill_manual(values=cols[new_order_gg], guide=guide_legend(reverse=TRUE))+
-  facet_wrap(~run, ncol=4)+
+  facet_wrap(~run, ncol=6)+
   coord_polar("y", start=0) +
   geom_text(aes(label = paste0( round(perc.vol, 1)  )),  position = position_stack(vjust=0.5)) +
   labs(x = NULL, y = NULL, fill = NULL)+
-  ggtitle("Species proportions [%] based on landscape volume [m3/ha] in year 80")+
+  ggtitle("Species proportions [%] based on landscape volume [m3/ha] in year 80 ADP-BAU-BIOEC-CNS")+
   theme_bw()
+
 x8wb + theme(plot.title = element_text(hjust = 0.5))
 
 # write.csv(lnd0_spin_up1_per, paste0(dataroot,"species_per_volume_after1500y_spinup_snapshot_6190.csv"), row.names = TRUE)
@@ -393,25 +458,29 @@ x8wb + theme(plot.title = element_text(hjust = 0.5))
 # (SHOULD BE REALIZED) PLOT 2 "Y" AXIS WITH relationship between realized harvest and volume increasing in the landscape
 # Total realized harvest at landscape level in average per ha
 
-g2 <- ggplot(aUnit, aes(year,realizedHarvest, color=case))+
-  geom_line(size=1.2, show.legend = F)+
-  facet_wrap(~run, ncol=3)+
-  ylim(0,50)+
-  ggtitle("Realized Harvest")+
-  theme(plot.title = element_text(hjust = 0.5))+
-  ylab("Realized harvest [m3/ha]")+
-  xlab("Year")+
-  theme_bw()
+ggplot(aUnit, aes(year, realizedHarvest, color = case)) +
+  geom_line(size = 1.2, show.legend = FALSE) +
+  facet_wrap(~run, ncol = 3) +
+  ylim(0, 50) +
+  ggtitle("Realized Harvest") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  ylab("Realized harvest [m3/ha]") +
+  xlab("Year") +
+  theme_bw() +
+  theme(
+    panel.grid.major = element_blank(),  # Remove major grid lines
+    panel.grid.minor = element_blank(),  # Remove minor grid lines
+    panel.background = element_blank(),
+    strip.background = element_blank(),
+    strip.placement = "outside"
+  )
+
 
 
 #-------------------------------------------------------------------------------
-
 # SPECIES specificaly BA:
-
 #species.to.keep<-c("piab","pisy", "fasy","qupe")
-
 #lnd2 <- lnd %>% filter(species %in% species.to.keep)
-
 #ggplot(data=lnd2, aes(x=year, y=basal_area_m2, colour=species)) + 
 #  geom_line(size=1.2)+
 #  scale_colour_manual(values = c("#76BA1B","#006600", "#A4DE02", "orange"))+
@@ -422,7 +491,6 @@ g2 <- ggplot(aUnit, aes(year,realizedHarvest, color=case))+
 
 #-------------------------------------------------------------------------------
 # PLOT BASAL AREA GEOM_LINE AT LANDSCAPE LEVEL BY SPECIES SELECTED
-
 # SPECIES specifically BA:
 
 species.to.keep<-c("piab", "fasy","qupe", "pisy")
@@ -430,25 +498,39 @@ species.to.keep<-c("piab", "fasy","qupe", "pisy")
 
 lnd2 <- lnd %>% filter(species %in% species.to.keep)
 
-b1 <- ggplot(data=lnd2, aes(x=year, y=basal_area_m2, color=species)) + 
+ggplot(data=lnd2, aes(x=year, y=basal_area_m2, color=species)) + 
   geom_line(size=0.8)+
   ggtitle("Basal area by dominat species") +
   facet_wrap(~run, ncol=3)+
   theme(plot.title = element_text(hjust = 0.5))+
   ylab("Basal area [m2/ha]")+  
-  theme_bw()
+  theme_bw()+
+  theme(
+    panel.grid.major = element_blank(),  # Remove major grid lines
+    panel.grid.minor = element_blank(),  # Remove minor grid lines
+    panel.background = element_blank(),
+    strip.background = element_blank(),
+    strip.placement = "outside"
+  )
 
 #-------------------------------------------------------------------------------
 # PLOT TOTAL AVG BASAL AREA AT LANDSCAPE LEVEL BY SPECIES
 
-g3 <- ggplot(lnd, aes(year, basal_area_m2, fill=factor(species, levels=new_order_gg)))+
+ggplot(lnd, aes(year, basal_area_m2, fill=factor(species, levels=new_order_gg)))+
   geom_area() +
   scale_fill_manual(values=cols[new_order_gg], guide=guide_legend(reverse=TRUE))+
   ggtitle("Total Basal Area")+
   facet_wrap(~run, ncol=3)+
   labs(x = "Year",y="Basal Area [m2/ha]",fill = "Species")+
   theme(plot.title = element_text(hjust = 0.5))+
-  theme_bw()
+  theme_bw()+
+  theme(
+    panel.grid.major = element_blank(),  # Remove major grid lines
+    panel.grid.minor = element_blank(),  # Remove minor grid lines
+    panel.background = element_blank(),
+    strip.background = element_blank(),
+    strip.placement = "outside"
+  )
 
 #-------------------------------------------------------------------------------
 # PLOT DBH GEOM_LINE AT LANDSCAPE LEVEL BY SPECIES
@@ -458,204 +540,313 @@ species.to.keep<-c("piab", "fasy","qupe", "pisy")
 
 lnd2 <- lnd %>% filter(species %in% species.to.keep)
 
-b3 <- ggplot(data=lnd2, aes(x=year, y=dbh_avg_cm, color=species)) + 
+ggplot(data=lnd2, aes(x=year, y=dbh_avg_cm, color=species)) + 
   geom_line(size=0.8)+
   ggtitle("Avarage DBH by dominat species") +
   facet_wrap(~run, ncol=3)+
   theme(plot.title = element_text(hjust = 0.5))+
   ylab("DBH [cm]")+  
-  theme_bw()
+  theme_bw()+
+  theme(
+    panel.grid.major = element_blank(),  # Remove major grid lines
+    panel.grid.minor = element_blank(),  # Remove minor grid lines
+    panel.background = element_blank(),
+    strip.background = element_blank(),
+    strip.placement = "outside"
+  )
 
 #-------------------------------------------------------------------------------
 # PLOT NUMBER OF STEMS GEOM_LINE AT LANDSCAPE LEVEL BY SPECIES
 
-# lnd2 <- lnd %>% filter(species %in% species.to.keep)    --- ADD IF YOU WANT SELECT SPECIES TO KEEP
-
-b4 <- ggplot(data=lnd2, aes(x=year, y=count_ha, color=species)) + 
+ggplot(data=lnd2, aes(x=year, y=count_ha, color=species)) + 
   geom_line(size=1.2)+
   ggtitle("N. individual stems by species") +
   facet_wrap(~run, ncol=3)+
   theme(plot.title = element_text(hjust = 0.5))+
   ylab("Individual stems")+  
-  theme_bw()
+  theme_bw()+
+  theme(
+    panel.grid.major = element_blank(),  # Remove major grid lines
+    panel.grid.minor = element_blank(),  # Remove minor grid lines
+    panel.background = element_blank(),
+    strip.background = element_blank(),
+    strip.placement = "outside"
+  )
 
 
 #-------------------------------------------------------------------------------
 # PLOT NUMBER OF STEMS GEOM_AREA AT LANDSCAPE LEVEL BY SPECIES
 
-g5 <- ggplot(lnd, aes(x=year, y=count_ha, fill=factor(species, levels=new_order_gg)))+ 
+ggplot(lnd, aes(x=year, y=count_ha, fill=factor(species, levels=new_order_gg)))+ 
   geom_area(size=1.2)+
   scale_fill_manual(values=cols[new_order_gg], guide=guide_legend(reverse=TRUE))+
   ggtitle("N. individual stems by species") +
   facet_wrap(~run, ncol=3)+
   labs(x = "Year",y="Individual Stems", fill = "Species")+
   theme(plot.title = element_text(hjust = 0.5))+
-  theme_bw()
-
-#-------------------------------------------------------------------------------
-# PLOT HEIGHT GEOM_LINE AT LANDSCAPE LEVEL BY SPECIES
-
-# lnd2 <- lnd %>% filter(species %in% species.to.keep)    #---   ADD IF YOU WANT SELECT SPECIES TO KEEP
-
-b5 <- ggplot(data=lnd, aes(x=year, y=height_avg_m, color=species)) + 
-  geom_line(size=1.2)+
-  ggtitle("Avarage Height by species") +
-  facet_wrap(~run, ncol=3)+
-  theme(plot.title = element_text(hjust = 0.5))+
-  ylab("Height [m]")+  
-  theme_bw()
-
-
-#-------------------------------------------------------------------------------
-# PLOT TOTAL HEIGHT GEOM_AREA AT LANDSCAPE LEVEL BY SPECIES
-
-g6 <- ggplot(dys, aes(x=year, y=height_mean))+
-  geom_line() +
-  scale_fill_manual(values=cols[new_order_gg], guide=guide_legend(reverse=TRUE))+
-  ggtitle("Total Avarage Height")+
-  facet_wrap(~run, ncol=4)+
-  labs(x = "Year",y="Height [m]")+
-  theme(plot.title = element_text(hjust = 0.5))+
-  theme_bw()
-
-# AGE 
-
-g7 <- ggplot(dys, aes(x=year, y=age_mean))+
-  geom_line() +
-  scale_fill_manual(values=cols[new_order_gg], guide=guide_legend(reverse=TRUE))+
-  ggtitle("Avarage Tree Age")+
-  facet_wrap(~run, ncol=4)+
-  labs(x = "Year",y="Age [years]")+
-  theme(plot.title = element_text(hjust = 0.5))+
-  theme_bw()
-
+  theme_bw()+
+  theme(
+    panel.grid.major = element_blank(),  # Remove major grid lines
+    panel.grid.minor = element_blank(),  # Remove minor grid lines
+    panel.background = element_blank(),
+    strip.background = element_blank(),
+    strip.placement = "outside"
+  )
 
 #-------------------------------------------------------------------------------
 # Total Carbon in Kg (total_carbon_kg	double	total carbon in living biomass (aboveground compartments and roots) of all living trees (including regeneration layer) (kg/ha))
 
-g8 <- ggplot(lnd, aes(year, total_carbon_kg, fill=factor(species, levels=new_order_gg)))+
+ggplot(lnd, aes(year, total_carbon_kg, fill=factor(species, levels=new_order_gg)))+
   geom_area() +
   scale_fill_manual(values=cols[new_order_gg], guide=guide_legend(reverse=TRUE))+
   ggtitle("Total Carbon in Living Biomass")+
   facet_wrap(~run, ncol=4)+
   labs(x = "Year",y="[kg/ha]",fill = "Species")+
   theme(plot.title = element_text(hjust = 0.5))+
-  theme_bw()
+  theme_bw()+
+  theme(
+    panel.grid.major = element_blank(),  # Remove major grid lines
+    panel.grid.minor = element_blank(),  # Remove minor grid lines
+    panel.background = element_blank(),
+    strip.background = element_blank(),
+    strip.placement = "outside"
+  )
 
 #-------------------------------------------------------------------------------
 # PLOT LAI AT LANDSCAPE LEVEL BY SPECIES
 
-g9 <- ggplot(lnd, aes(year, LAI, fill=factor(species, levels=new_order_gg)))+
+ggplot(lnd, aes(year, LAI, fill=factor(species, levels=new_order_gg)))+
   geom_area() +
   scale_fill_manual(values=cols[new_order_gg], guide=guide_legend(reverse=TRUE))+
   ggtitle("LAI index by species")+
   facet_wrap(~run, ncol=3)+
   labs(x = "Year",y="LAI index",fill = "Species")+
   theme(plot.title = element_text(hjust = 0.5))+
-  theme_bw()
+  theme_bw()+
+  theme(
+    panel.grid.major = element_blank(),  # Remove major grid lines
+    panel.grid.minor = element_blank(),  # Remove minor grid lines
+    panel.background = element_blank(),
+    strip.background = element_blank(),
+    strip.placement = "outside"
+  )
 
 
 #-------------------------------------------------------------------------------
 # PLOT NPP AT LANDSCAPE LEVEL BY SPECIES
 
-g10 <- ggplot(lnd, aes(year, NPP_kg, fill=factor(species, levels=new_order_gg)))+
+ggplot(lnd, aes(year, NPP_kg, fill=factor(species, levels=new_order_gg)))+
   geom_area() +
   scale_fill_manual(values=cols[new_order_gg], guide=guide_legend(reverse=TRUE))+
   ggtitle("Net Primary Productivity")+
   facet_wrap(~run, ncol=3)+
   labs(x = "Year",y="NPP [kg/ha]",fill = "Species")+
   theme(plot.title = element_text(hjust = 0.5))+
-  theme_bw()
-
-# PLOT NEE AT LANDSCAPE LEVEL
-
-g11 <- ggplot(variables.all, aes(year, NEE))+
-  geom_area() +
-  scale_fill_manual(values=cols[new_order_gg], guide=guide_legend(reverse=TRUE))+
-  ggtitle("Net Ecosystem Exchange")+
-  facet_wrap(~case, ncol=4)+
-  labs(x = "Year",y="NEE [kg/ha]")+
-  theme(plot.title = element_text(hjust = 0.5))+
-  theme_bw()
+  theme_bw()+
+  theme(
+    panel.grid.major = element_blank(),  # Remove major grid lines
+    panel.grid.minor = element_blank(),  # Remove minor grid lines
+    panel.background = element_blank(),
+    strip.background = element_blank(),
+    strip.placement = "outside"
+  )
 
 # PLOT H count AT LANDSCAPE LEVEL
 
-g12 <- ggplot(H_avg, aes(year, shannon_VOL_avg))+
+ggplot(H_avg, aes(year, shannon_VOL_avg))+
   geom_line(size=0.8) +
   scale_fill_manual(values=cols[new_order_gg], guide=guide_legend(reverse=TRUE))+
   ggtitle("Shannon Biodiversity Index based on volume proportion")+
   facet_wrap(~run, ncol=3)+
   labs(x = "Year",y="Shannon Index [H]")+
   theme(plot.title = element_text(hjust = 0.5))+
-  theme_bw()
+  theme_bw()+
+  theme(
+    panel.grid.major = element_blank(),  # Remove major grid lines
+    panel.grid.minor = element_blank(),  # Remove minor grid lines
+    panel.background = element_blank(),
+    strip.background = element_blank(),
+    strip.placement = "outside"
+  )
 
 # PLOT H basal area AT LANDSCAPE LEVEL
 
-g13 <- ggplot(H_avg, aes(year, shannon_BA_avg))+
+ggplot(H_avg, aes(year, shannon_BA_avg))+
   geom_line(size=1.2) +
   scale_fill_manual(values=cols[new_order_gg], guide=guide_legend(reverse=TRUE))+
   ggtitle("Shannon Biodiversity Index on Basal Area")+
   facet_wrap(~run, ncol=3)+
   labs(x = "Year",y="Shannon Index [H]")+
   theme(plot.title = element_text(hjust = 0.5))+
-  theme_bw()
+  theme_bw()+
+  theme(
+    panel.grid.major = element_blank(),  # Remove major grid lines
+    panel.grid.minor = element_blank(),  # Remove minor grid lines
+    panel.background = element_blank(),
+    strip.background = element_blank(),
+    strip.placement = "outside"
+  )
 
-# PLOT H basal area AT LANDSCAPE LEVEL
+#---------------------------------------------
+# PLOT OF THE WP4 SCENARIOS WITH SPECIFIC PALETTE 
 
-g14 <- ggplot(variables.all, aes(year, NEP))+
-  geom_area() +
-  scale_fill_manual(values=cols[new_order_gg], guide=guide_legend(reverse=TRUE))+
-  ggtitle("Net Ecosystem Productivity")+
-  facet_wrap(~case, ncol=3)+
-  labs(x = "Year",y="NEP [kg/ha]")+
-  theme(plot.title = element_text(hjust = 0.5))+
-  theme_bw()
 
-# PLOT GPP AT LANDSCAPE LEVEL
+# FIRST WAY AND THE MOST EFFICACIOUS
 
-g15 <- ggplot(variables.all, aes(year, GPP))+
-  geom_area() +
-  scale_fill_manual(values=cols[new_order_gg], guide=guide_legend(reverse=TRUE))+
-  ggtitle("Gross Primary Productivity")+
-  facet_wrap(~case.x, ncol=3)+
-  labs(x = "Year",y="GPP [kg/ha]")+
-  theme(plot.title = element_text(hjust = 0.5))+
-  theme_bw()
+library(colorspace)
 
-#-------------------------------------------------------------------------------
+my_palette <- c("#FFB6C1", "#FF1493", "#CD1076",
+                "#7FFFD4" ,"#00FF7F", "aquamarine4", 
+                "#FFF68F", "#FFD700", "darkgoldenrod1",
+                "#63B8FF", "royalblue1", "mediumblue")
 
-# Plot of the WP4 tables of variables with a SPECIFIC PALETTE
 
-# Define a color palette
-my_palette <- c("#FFB5C5", "#FF00FF", "#B452CD", "#FFF68F", "#FFD700", "#CD9B1D", 
-                "#00FFFF", "steelblue1", "#0000CD", "#7FFF00","#00CD00", "#008B45D4")
-
-#-------------------------------------------------------------------------------
-# CUMULATIVE HARVEST 
-# Perform cumulative sum operation within each run
-harvests <- aUnit %>%
-  group_by(run) %>%
-  mutate(cumulative_harvest = cumsum(realizedHarvest))
-
-#head(harvests)
-summary(harvests)  # statistics
-#dim(harvests)      # dimension of the data frame
-
+# Create the ggplot with the palette selected
 cumHarv <- ggplot(harvests, aes(year, cumulative_harvest, color = run)) +
   geom_line(size = 0.8) +
+  scale_color_manual(values = my_palette) +
   ggtitle("Realized Cumulative Harvest in Different Management and RCP scenarios") +
-  theme(plot.title = element_text(hjust = 0.5),
-        axis.title.y = element_text(size = rel(1.5), angle = 90),
-        axis.title.x = element_text(size = rel(1.5), angle = 0)) +
   ylab("Realized harvest [m3/ha]") +
   theme_bw() +
-  scale_color_manual(values = my_palette)
+  theme(plot.title = element_text(hjust = 0.8),
+        axis.title.y = element_text(size = rel(1.5), angle = 90),
+        axis.title.x = element_text(size = rel(1.5), angle = 0),
+        panel.grid.major = element_blank(),  
+        panel.grid.minor = element_blank(),  
+        panel.background = element_blank(),
+        strip.background = element_blank(),
+        strip.placement = "outside"
+  )
 
 # Customize text size and angle for axis titles
-cumHarv <- cumHarv + theme(plot.title = element_text(lineheight = 2, face = "bold", color = "black", size = 18))
-cumHarv
+cumHarv <- cumHarv + 
+  theme(plot.title = element_text(lineheight = 2, 
+                                  face = "bold", 
+                                  color = "black", 
+                                  size = 18))
 
+cumHarv  # Display the plot
 
+#-----------------------------------------------
+# SECOND WAY USING RColorBrewer
+library(RColorBrewer)
+
+# Define the RdYlBu palette with 11 colors
+rdylbu_palette <- brewer.pal(11, "RdYlBu")
+
+# Interpolate to generate 12 colors
+custom_palette <- colorRampPalette(rdylbu_palette)(12)
+
+# Create the ggplot with the custom palette
+cumHarv <- ggplot(harvests, aes(year, cumulative_harvest, color = run)) +
+  geom_line(size = 0.8) +
+  scale_color_manual(values = custom_palette) +
+  ggtitle("Realized Cumulative Harvest in Different Management and RCP scenarios") +
+  ylab("Realized harvest [m3/ha]") +
+  theme_bw() +
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = rel(1.5), angle = 90),
+        axis.title.x = element_text(size = rel(1.5), angle = 0),
+        panel.grid.major = element_blank(),  
+        panel.grid.minor = element_blank(),  
+        panel.background = element_blank(),
+        strip.background = element_blank(),
+        strip.placement = "outside"
+  )
+
+# Customize text size and angle for axis titles
+cumHarv <- cumHarv + 
+  theme(plot.title = element_text(lineheight = 2, 
+                                  face = "bold", 
+                                  color = "black", 
+                                  size = 18))
+
+cumHarv  # Display the plot
+
+#-------------------------------------------------------------------------------
+# THIRD WAY GENERATING A PALETTE
+
+# Define the contrasting colors
+colors <- c( "#3366FF", "#FF5733","#33FF33", "#9933FF")
+
+# Create a function to generate shades from a color
+generate_shades <- function(color) {
+  rgb <- col2rgb(color)
+  shades <- rgb / 255  # Convert RGB values to range [0, 1]
+  shades <- apply(shades, 2, function(x) x * seq(1, 0.6, length.out = 4))  # Generate shades from stronger to lighter
+  apply(shades, 2, rgb, maxColorValue = 255)  # Convert back to RGB format
+}
+
+# Generate shades for each color
+palette3 <- lapply(colors, generate_shades)
+
+# Flatten the palette into a vector
+palette3 <- unlist(palette)
+
+# Display the palette
+palette3
+
+# Create the ggplot with the custom palette
+cumHarv <- ggplot(harvests, aes(year, cumulative_harvest, color = run)) +
+  geom_line(size = 0.8) +
+  scale_color_manual(values = palette3) +
+  ggtitle("Realized Cumulative Harvest in Different Management and RCP scenarios") +
+  ylab("Realized harvest [m3/ha]") +
+  theme_bw() +
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = rel(1.5), angle = 90),
+        axis.title.x = element_text(size = rel(1.5), angle = 0),
+        panel.grid.major = element_blank(),  
+        panel.grid.minor = element_blank(),  
+        panel.background = element_blank(),
+        strip.background = element_blank(),
+        strip.placement = "outside"
+  )
+
+# Customize text size and angle for axis titles
+cumHarv <- cumHarv + 
+  theme(plot.title = element_text(lineheight = 2, 
+                                  face = "bold", 
+                                  color = "black", 
+                                  size = 18))
+
+cumHarv  # Display the plot
+
+#-------------------------------------------------------------------------------
+# 4TH TRY THIS TIME WITH VIRIDIS PACKAGE
+
+library(viridis)
+
+# Define the palette with 12 colors
+viridis_palette <- inferno(12)         # HERE FORE VARIANTS https://cran.r-project.org/web/packages/viridis/vignettes/intro-to-viridis.html 
+
+# Create the ggplot with the viridis palette
+cumHarv <- ggplot(harvests, aes(year, cumulative_harvest, color = run)) +
+  geom_line(size = 0.8) +
+  scale_color_manual(values = viridis_palette) +
+  ggtitle("Realized Cumulative Harvest in Different Management and RCP scenarios") +
+  ylab("Realized harvest [m3/ha]") +
+  theme_bw() +
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title.y = element_text(size = rel(1.5), angle = 90),
+        axis.title.x = element_text(size = rel(1.5), angle = 0),
+        panel.grid.major = element_blank(),  
+        panel.grid.minor = element_blank(),  
+        panel.background = element_blank(),
+        strip.background = element_blank(),
+        strip.placement = "outside"
+  )
+
+# Customize text size and angle for axis titles
+cumHarv <- cumHarv + 
+  theme(plot.title = element_text(lineheight = 2, 
+                                  face = "bold", 
+                                  color = "black", 
+                                  size = 18))
+
+cumHarv  # Display the plot
+
+#_______________________________________________________________________________
 # Growing Stock
 
 Growing_stock <- ggplot(WP4_table, aes(year, Growing_stock, color = run)) +
@@ -676,7 +867,7 @@ Growing_stock
 # Annual increment
 
 Annual_increment <- ggplot(WP4_table, aes(year, Annual_increment, color = run)) +
-  geom_line(size = 0.5) +
+  geom_line(size = 0.8) +
   ggtitle("Annual Increment in Different Management and RCP scenarios") +
   theme(plot.title = element_text(hjust = 0.5),
         axis.title.y = element_text(size = rel(1.5), angle = 90),
@@ -693,7 +884,7 @@ Annual_increment
 # Disturbance mortality
 
 Disturbance_mortality <- ggplot(WP4_table, aes(year, Disturbance_mortality, color = run)) +
-  geom_line(size = 0.5) +
+  geom_line(size = 0.7) +
   ggtitle(" Disturbance Mortality in Different Management and RCP scenarios") +
   theme(plot.title = element_text(hjust = 0.5),
         axis.title.y = element_text(size = rel(1.5), angle = 90),
@@ -710,7 +901,7 @@ Disturbance_mortality
 # Natural mortality
 
 Natural_mortality <- ggplot(WP4_table, aes(year, Natural_mortality, color = run)) +
-  geom_line(size = 0.5) +
+  geom_line(size = 0.8) +
   ggtitle("Natural Mortality in Different Management and RCP scenarios") +
   ylab("Natural Mortality [m3/ha]") +
   theme(plot.title = element_text(hjust = 0.5),
@@ -727,7 +918,7 @@ Natural_mortality
 # Annual harvest
 
 Annual_harvest <- ggplot(WP4_table, aes(year, Annual_harvest, color = run)) +
-  geom_line(size = 0.5) +
+  geom_line(size = 0.8) +
   ggtitle("Annual Harvest in Different Management and RCP scenarios") +
   ylab("Annual Harvest [m3/ha]") +
   theme(plot.title = element_text(hjust = 0.5),
@@ -782,6 +973,7 @@ cumHarv <- ggplot(harvests, aes(year, cumulative_harvest, color = run)) +
   ggtitle("Realized Cumulative Harvest in Different Management and RCP scenarios") +
   theme(plot.title = element_text(hjust = 0.5)) +
   ylab("Realized harvest [m3/ha]") +
+  scale_color_manual(values = custom_palette)+
   theme_bw()
 
 cumHarv <- cumHarv + theme(plot.title = element_text(lineheight = 2, face = "bold", color = "black", size = 18))
@@ -797,6 +989,7 @@ Growing_stock <- ggplot(WP4_table, aes(year, Growing_stock, color = run)) +
   ggtitle("Growing Stocks in Different Management and RCP scenarios") +
   theme(plot.title = element_text(hjust = 0.5)) +
   ylab("Growing Stock [m3/ha]") +
+  scale_color_manual(values = custom_palette)+
   theme_bw()
 
 Growing_stock <- Growing_stock + theme(plot.title = element_text(lineheight = 2, face = "bold", color = "black", size = 18))
@@ -809,10 +1002,11 @@ Growing_stock
 # Annual increment
 
 Annual_increment <- ggplot(WP4_table, aes(year, Annual_increment, color = run)) +
-  geom_line(size = 0.5) +
+  geom_line(size = 0.6) +
   ggtitle("Annual Increment in Different Management and RCP scenarios") +
   theme(plot.title = element_text(hjust = 0.5)) +
   ylab("Annual Increment [m3/ha]") +
+  scale_color_manual(values = custom_palette)+
   theme_bw()
 
 Annual_increment <- Annual_increment + theme(plot.title = element_text(lineheight = 2, face = "bold", color = "black", size = 18))
@@ -824,10 +1018,11 @@ Annual_increment
 # Disturbance mortality
 
 Disturbance_mortality <- ggplot(WP4_table, aes(year, Disturbance_mortality, color = run)) +
-  geom_line(size = 0.5) +
+  geom_line(size = 0.6) +
   ggtitle(" Disturbance Mortality in Different Management and RCP scenarios") +
   theme(plot.title = element_text(hjust = 0.5)) +
   ylab("Disturbance Mortality [m3/ha]") +
+  scale_color_manual(values = custom_palette)+
   theme_bw()
 
 Disturbance_mortality <- Disturbance_mortality + theme(plot.title = element_text(lineheight = 2, face = "bold", color = "black", size = 18))
@@ -839,10 +1034,11 @@ Disturbance_mortality
 # Natural_mortality
 
 Natural_mortality <- ggplot(WP4_table, aes(year, Natural_mortality, color = run)) +
-  geom_line(size = 0.5) +
+  geom_line(size = 0.6) +
   ggtitle("Natural Mortality in Different Management and RCP scenarios") +
   theme(plot.title = element_text(hjust = 0.5)) +
   ylab("Natural Mortality [m3/ha]") +
+  scale_color_manual(values = custom_palette)+
   theme_bw()
 
 Natural_mortality <- Natural_mortality + theme(plot.title = element_text(lineheight = 2, face = "bold", color = "black", size = 18))
@@ -855,10 +1051,11 @@ Natural_mortality
 # Annual_harvest
 
 Annual_harvest <- ggplot(WP4_table, aes(year, Annual_harvest, color = run)) +
-  geom_line(size = 0.5) +
+  geom_line(size = 0.6) +
   ggtitle("Annual Harvest in Different Management and RCP scenarios") +
   theme(plot.title = element_text(hjust = 0.5)) +
   ylab("Annual Harvest [m3/ha]") +
+  scale_color_manual(values = custom_palette)+
   theme_bw()
 
 Annual_harvest <- Annual_harvest + theme(plot.title = element_text(lineheight = 2, face = "bold", color = "black", size = 18))
@@ -870,10 +1067,11 @@ Annual_harvest
 # Shannon BA 
 
 H_BA_plot <- ggplot(H_avg, aes(year, shannon_BA_avg, color = run)) +
-  geom_line(size = 0.5) +
+  geom_line(size = 0.7) +
   ggtitle("Shannon Entropy based on Basal Area Tree Species Proportion") +
   theme(plot.title = element_text(hjust = 0.5)) +
   ylab("Shannon Index [H]") +
+  scale_color_manual(values = custom_palette)+
   theme_bw()
 
 H_BA_plot <- H_BA_plot + theme(plot.title = element_text(lineheight = 2, face = "bold", color = "black", size = 18))
@@ -885,10 +1083,11 @@ H_BA_plot
 # Shannon VOL
 
 H_VOL_plot <- ggplot(H_avg, aes(year, shannon_VOL_avg, color = run)) +
-  geom_line(size = 0.5) +
+  geom_line(size = 0.7) +
   ggtitle("Shannon Entropy based on Volume Tree Species Proportion") +
   theme(plot.title = element_text(hjust = 0.5)) +
   ylab("Shannon Index [H]") +
+  scale_color_manual(values = custom_palette)+
   theme_bw()
 
 H_VOL_plot <- H_VOL_plot + theme(plot.title = element_text(lineheight = 2, face = "bold", color = "black", size = 18))
@@ -988,222 +1187,14 @@ a <- ylim.w[1] - b*ylim.bb[1]
 ggplot(damage.all,aes(year,killedVolume/area/tot_vol))+
   geom_col(fill="grey",col="black")+
   geom_line(aes(y = a+ barkbeetle/area/tot_vol*b), data = damage.all, size=0.9, col="pink") +
-  scale_y_continuous(name="Wind relative damage", sec.axis = sec_axis(~ (. - a)/b,name = "Barkbeetle relative damage"))+
+  scale_y_continuous(name="Wind relative damage on total volume", sec.axis = sec_axis(~ (. - a)/b,name = "Barkbeetle relative damage on total volume"))+
   facet_wrap(~run, ncol=3)+
   theme_bw()
 
-
-########################################################## CLOSE EVERY PLOT
+ 
+# CLOSE EVERY PLOT
 
 
 dev.off()
 
-#________________________________________________________________________THE END
-
-
-
-#-------------------------------------------------------------------------------
-#                                 Grid for the paper!                          #
-
-
-
-# PLOT NUMBER OF STEMS GEOM_AREA AT LANDSCAPE LEVEL BY SPECIES      
-
-
-g5 <- ggplot(lnd, aes(x=year, y=count_ha, fill=factor(species, levels=new_order_gg)))+ 
-  geom_area(show.legend = F)+
-  scale_fill_manual(values=cols[new_order_gg], guide=guide_legend(reverse=TRUE))+
-  ggtitle("N. individual stems by species") +
-  facet_wrap(~run, ncol=5)+
-  labs(x = "Year",y="Individual Stems", fill = "Species")+
-  theme(plot.title = element_text(hjust = 0.5))+
-  theme_bw()+
-  theme(axis.line = element_line(color='black'),
-        plot.background = element_blank(),
-        panel.grid.minor = element_blank(),
-        panel.grid.major = element_blank())
-
-#theme_bw()  # this is to not have the gray - classic you will have a blanck on -> in case for others look the link
-
-# https://www.statology.org/ggplot-remove-gridlines/
-
-
-#-------------------------------------------------------------------------------
-# Total Carbon in Kg (total_carbon_kg	double	total carbon in living biomass (aboveground compartments and roots) of all living trees (including regeneration layer) (kg/ha))
-
-g8 <- ggplot(lnd, aes(year, total_carbon_kg, fill=factor(species, levels=new_order_gg)))+
-  geom_area(show.legend = TRUE) +
-  scale_fill_manual(values=cols[new_order_gg], guide=guide_legend(reverse=TRUE))+
-  ggtitle("Total Carbon in Living Biomass")+
-  facet_wrap(~run, ncol=3)+
-  labs(x = "Year",y="[kg/ha]",fill = "Species")+
-  theme(plot.title = element_text(hjust = 0.5))+
-  theme_bw()+
-  theme(axis.line = element_line(color='black'),
-        plot.background = element_blank(),
-        panel.grid.minor = element_blank(),
-        panel.grid.major = element_blank())
-
-# theme_classic()
-
-#-------------------------------------------------------------------------------
-# AGE 
-
-b7 <- ggplot(dys, aes(x=year, y=age_mean, color="red"))+
-  geom_line(size=1,show.legend = F) +
-  ggtitle("Avarage Trees Age")+
-  facet_wrap(~run, ncol=5)+
-  labs(x = "Year",y="Age [years]")+
-  theme(plot.title = element_text(hjust = 0.5))+
-  theme_bw()+
-  theme(axis.line = element_line(color='black'),
-        plot.background = element_blank(),
-        panel.grid.minor = element_blank(),
-        panel.grid.major = element_blank())
-
-#-------------------------------------------------------------------------------
-# PLOT DBH GEOM_AREA AT LANDSCAPE LEVEL AVARAGE ALL SP TOGETHER
-
-b8 <- ggplot(data=dys, aes(x=year, y=dbh_mean, color=case)) + 
-  geom_line(size=1,show.legend = F)+
-  ggtitle("Avarage DBH by species") +
-  facet_wrap(~run, ncol=5)+
-  theme(plot.title = element_text(hjust = 0.5))+
-  ylab("DBH [cm]")+  
-  theme_bw()+
-  theme(axis.line = element_line(color='black'),
-        plot.background = element_blank(),
-        panel.grid.minor = element_blank(),
-        panel.grid.major = element_blank())
-
-
-grid.arrange(g1,g8,b7,b8, ncol=1)
-
-
-#_______________________________________________________________________________
-
-# NEW KILLED VOLUME CALCULATION INCLUDING BARK BEETLE
-# Make the disturbance impact:
-
-# Wind AND bark beetle disturbance impact in the landscape volume in percentages
-# wind and bark beetle regime
-
-#_______________________________________________________________________________
-
-
-killed_volume_w  <- sum(w$killedVolume)                   
-killed_volume_w 
-killed_volume_bb <- sum(bb$killedVolume)                  
-killed_volume_bb
-killed_volume_dist <- killed_volume_w + killed_volume_bb   
-killed_volume_dist
-killed_volume_per_year_dist  <- killed_volume_dist/300            
-killed_volume_per_year_dist 
-killed_volume_per_year_dist_ha <- killed_volume_per_year_dist/17749.26
-killed_volume_per_year_dist_ha                                         
-
-
-
-killed_volume_w  <- sum(wind$killedVolume)                   
-killed_volume_w 
-killed_volume_bb <- sum(barkbeetle$killedVolume)                  
-killed_volume_bb
-killed_volume_dist <- killed_volume_w + killed_volume_bb   
-killed_volume_dist
-killed_volume_per_year_dist  <- killed_volume_dist/200            
-killed_volume_per_year_dist 
-killed_volume_per_year_dist_ha <- killed_volume_per_year_dist/17749.26
-killed_volume_per_year_dist_ha  
-
-# FILTER AND GROUP FOR THE NEEDED COLUMNS AND GROUP BY YEAR TO CREATE NEW DATAFRAMES FOR THE % ANALSIS ON THE KILLED VOLUME PER YEAR
-
-dfnew1  <- lnd[,c(1,8)]
-
-df_vol = dfnew1 %>% group_by(year)  %>%
-  summarise(tot_vol = sum(volume_m3),
-            .groups = 'drop')
-
-
-prop_killed_vol_ha_year <- df_vol %>% mutate(perc.vol=100*killed_volume_per_year_dist_ha/tot_vol)
-prop_killed_vol_ha_year
-summary(prop_killed_vol_ha_year)
-
-
-dfnew1  <- landscape[,c(1,8)]
-
-df_vol = dfnew1 %>% group_by(year)  %>%
-  summarise(tot_vol = sum(volume_m3),
-            .groups = 'drop')
-
-
-prop_killed_vol_ha_year <- df_vol %>% mutate(perc.vol=100*killed_volume_per_year_dist_ha/tot_vol)
-prop_killed_vol_ha_year
-summary(prop_killed_vol_ha_year)
-
-
-hist(prop_killed_vol_ha_year$perc.vol, 
-     main = "Landscape proportion of killed volume [m3/ha] by wind and bark beetles per year in CC",
-     cex.main = 1, xlab = "[Killed volume / Total volume] = [%]", 
-     ylab = "Frequency [years]",
-     cex.lab = 1, 
-     col="lightblue", 
-     breaks = "FD")
-
-
-##______________________________________________________
-
-# New data base
-
-# ADD compone the DATA FRAME
-damage<-left_join(damage,wind[,c(1,8)],by=("year"))                           # LEFT_JOIN IS A FUNCTION TO JOIN A VARIABLE IN THIS CASE COLUMN 1 AND 2 AND MANY ROWS BASE ON YEAR VARIABLE NUMBER OF ROWS
-damage<-left_join(damage,lnd_volume,by=("year"))                              # ADD THE LANDSCAPE VOLUME IN THE DAMAGE DATA FRAME
-colnames(damage)<-c("year","barkbeetle","case","wind","volume")               # GIVE THE NAME AT EVERY VARIABLE
-
-
-#-------------------------------------------------------------------------------
-# PLOT SECOND Y AXIS FOR KILLED VOLUME BY DISTURBANCES IN LANDSCAPE AVG LINE 75
-
-area<-lnd$area[1]
-ylim.bb <- c(0, 600000)                                                                                          # in this example, precipitation look the link down
-ylim.w <- c(0, 1700000) 
-
-b <- diff(ylim.bb)/diff(ylim.w)
-a <- ylim.bb[1] - b*ylim.w[1] 
-# TO MAKE 2 LINE AND 2 DIFFERENT SCALE PLOT "https://stackoverflow.com/questions/3099219/ggplot-with-2-y-axes-on-each-side-and-different-scales"
-ggplot(damage.all,aes(year,barkbeetle/area))+
-  geom_col(fill="pink",col="pink")+
-  geom_point(aes(y = a+ wind/area*b), data = damage.all,size=2) +
-  scale_y_continuous(name="Barkbeetle damage [m3/ha]", sec.axis = sec_axis(~ (. - a)/b,name = "Wind damage [m3/ha]"))+
-  facet_wrap(~case, ncol=4)+
-  theme_bw()
-
-
-absolute_damage <- (damage.all %>% group_by(case) %>% summarise(mean(barkbeetle/area),mean(na.omit(wind/area))))                    # SUMMARISE THE DAMAGE IMPACT IN NUMERIC VALUES AND IN MEAN FOR BOTH BB AD WIND
-
-
-#-------------------------------------------------------------------------------
-# PLOT SECOND Y AXIS IN RELATIVE KILLED VOLUME BY DISTURBANCES IN LANDSCAPE AVG
-
-ylim.bb <- c(0, 600000)                                                                                                      # In this example, precipitation look the link down
-ylim.w <- c(0, 1700000)                                                                                                      # SET THE LIMIT OF THE AXIS IN THIS CASE BASED ON M3
-
-b <- diff(ylim.bb)/diff(ylim.w)                                                                                              # MATHEMATIC FUCTION TO CREATE THE RIGHT SCALE VALUE BASED ON THE DATA YOU HAVE
-a <- ylim.bb[1] - b*ylim.w[1] 
-
-# TO MAKE 2 LINE AND 2 DIFFERENT SCALE PLOT "https://stackoverflow.com/questions/3099219/ggplot-with-2-y-axes-on-each-side-and-different-scales"
-ggplot(damage.all,aes(year,bb/area/volume))+                                                                         # THE DATA WE WANT TO PLOT 1' DATASET BARKBEETLE IN THIS CASE
-  geom_col(fill="pink",col="pink")+                                             
-  geom_point(aes(y = a + w/area/volume*b), data = damage.all,size=2) +                                                    # SECOND Y AXIS TO PLOT IN THE SAME PLOT WIND RELATIVE DAMAGE IN TERMS OF LANDSCAPE VOLUME. DATA IS WHERE YPU TAKE THE DATA FOR THAT FUNCTION.
-  scale_y_continuous(name="Barkbeetle relative damage", sec.axis = sec_axis(~ (. - a)/b,name = "Wind relative damage"))+
-  facet_wrap(~run, ncol=1)+
-  theme_bw()
-# SET THE SCALE OF THE Y AXIS. NAME IS THE NAME OF THE LABEL. FIRST Y AXIS SCALE REFERENCE ONE. SEC_AXIS SET THE SECOND AXIS TILDE ATTACH, (.,A)/B IS THE FORMULA.                                          
-rel_damage <- (damage.all %>% group_by(case) %>% summarise((barkbeetle/area/volume),(wind/area/volume)))
-
-
-
-########################################################## CLOSE EVERY PLOT
-
-
-dev.off()
-
+#                                  END
