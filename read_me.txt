@@ -14,3 +14,7 @@ In the folder 20240806 the names of the project files (xml) do not match with th
 Similarly in folder 20240807 is for wind version, once tried the V6 may be different the name of project file from the DB consider the version of the project file if different.
 
 20240808 folder is for the coming back of the experiment and so to test 12! Where we are analysis the new managenet script coming from the changes in iland version 2.0 Here also refer to the project file name for the versions.
+
+20240821
+
+I replicated the analysis editing the CO2 beta coefficient to mitigate the fertilization effect and also using the iLand 2.0 Version. I recalculated the variable tables requested and added Shannon based on RU shannon calculation and then avg among the H index per RU.
