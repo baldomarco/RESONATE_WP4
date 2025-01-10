@@ -14,7 +14,7 @@ library(fields)
 #_______________________________________________________________________________
 # Path to search the data folder
 # dataroot <- "C:/iLand/2024/output/20240808/"
-dataroot <- "I:/iLand/2024/output/20240814/Final_Analysis/All/"
+dataroot <- "D:/iLand/2025/WP4_RESONATE_V2.0/iLandDist - new version 2.0 - 2025/output/"
 
 # CREATE NEW EMPTY DATAFRAME
 lnd <- c()
@@ -240,7 +240,7 @@ for (i in (1:length(all_v)))  {
 
 #_______________________________________________________________________________
 # NEED TO OPEN A PDF WRITER AND GIVE IT THE ROOT, THE NAME, AND THE SIZE
-pdf(paste0(dataroot, "20240822_all5_8_12.pdf"), height = 8, width = 12)
+pdf(paste0(dataroot, "20240822_all5_8_12.pdf"), height = 18, width = 32)
 
 #_______________________________________________________________________________
 # This tells the colors:

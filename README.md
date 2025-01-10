@@ -7,7 +7,7 @@ Management scripts development:
 5 different management narratives Climate Change Adaptation, Business As Usual, 
 Bioeconomy (production oriented), Conservation (increase protection), Unmanaged.
 
-The first R scripts were needed to test the management algorithms. We run countless simulations to test and optimize all the required parameters to obtain a precise representation of our forest landscape (both in terms of management and in terms of forests ecological responses). It was important to evaluate if the developed management algorithms for the study (including many slviculture and management operations) were properly set and parametrised.
+The first R scripts were needed to test the management algorithms. We run countless simulations to test and optimize all the required parameters to obtain a precise representation of our forest landscape (both in terms of management and in terms of forests ecological responses). It was important to evaluate if the developed management algorithms for the study (including many silviculture and management operations) were properly set and parametrised.
 
 Tests, statistics, output visualization.
 

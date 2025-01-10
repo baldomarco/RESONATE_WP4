@@ -14,7 +14,7 @@ library(fields)
 #_______________________________________________________________________________
 # Path to search the data folder
 # dataroot <- "C:/iLand/2024/output/20240808/"
-dataroot <- "I:/iLand/2024/output/20240814/historical/"
+dataroot <- "D:/iLand/2025/WP4_RESONATE_V2.0/iLandDist - new version 2.0 - 2025/output/ADP/"
 
 # CREATE NEW EMPTY DATAFRAME
 removals <- c()
@@ -378,7 +378,7 @@ new_order_gg<- new_order_gg.all[new_order_gg.all %in% species.we.have]
 # column diagram
 ggplot(removals, aes(year, volume, fill=factor(type, levels=c( "regcut","salvaged","finalcut","thinning"))))+
   geom_bar(position="stack", stat="identity")+
-  facet_wrap(~new_run_name, ncol=2)+
+  facet_wrap(~new_run_name, ncol=3)+
   labs(x = "Year",y="Removed volume m3/ha",fill = "Removal")+
   scale_fill_manual(values=c("#4897D8","limegreen","#FFDB5C","#FA6E59"))+               #"#B7B8B6","#34675C","#B3C100" grey and greens
   theme_bw()
@@ -390,7 +390,7 @@ ggplot(lnd, aes(year,volume_m3, fill=factor(species, levels=new_order_gg)))+
   geom_area() +
   scale_fill_manual(values=cols[new_order_gg], guide=guide_legend(reverse=TRUE))+
   ggtitle("volume")+
-  facet_wrap(~new_run_name, ncol=2)+
+  facet_wrap(~new_run_name, ncol=3)+
   labs(x = "Year",y="Volume m3/ha",fill = "Species")+
   theme(plot.title = element_text(hjust = 0.5))+
   #ylim(0,400)+
@@ -402,7 +402,7 @@ ggplot(lnd, aes(year,total_carbon_kg, fill=factor(species, levels=new_order_gg))
   geom_area() +
   scale_fill_manual(values=cols[new_order_gg], guide=guide_legend(reverse=TRUE))+
   ggtitle("total_carbon_kg")+
-  facet_wrap(~new_run_name, ncol=2)+
+  facet_wrap(~new_run_name, ncol=3)+
   labs(x = "Year",y="total carbon kg/ha",fill = "Species")+
   theme(plot.title = element_text(hjust = 0.5))+
   #ylim(0,400)+
@@ -412,8 +412,8 @@ ggplot(lnd, aes(year,total_carbon_kg, fill=factor(species, levels=new_order_gg))
 
 ggplot(aUnit, aes(year,realizedHarvest, color=case))+
   geom_line(size=1.2, show.legend = F)+
-  facet_wrap(~new_run_name, ncol=2)+
-  ylim(0,70)+
+  facet_wrap(~new_run_name, ncol=3)+
+  ylim(0,120)+
   ggtitle("Realized Harvest Transitional Period")+
   theme(plot.title = element_text(hjust = 0.5))+
   ylab("Realized harvest m3/ha")+
