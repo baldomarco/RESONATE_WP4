@@ -30,6 +30,11 @@ svc_labels <- c(
   Water       = "Water regulation"
 )
 
+# It is for Reusability and Readability. 
+# as.factor: needed because the aov function needs categorical predictors to be factors
+# recode : recode(Variable, harvest = "Annual harvest") finds every cell in Variable that says "harvest" and replaces it with "Annual harvest".
+# !!! : "splicing operator" just says: "take this vector and spread its contents as individual named arguments into the function call."
+
 df <- df |>
   mutate(Variable           = recode(Variable,          !!!var_labels),
          `Ecosystem service` = recode(`Ecosystem service`, !!!svc_labels),
@@ -37,21 +42,29 @@ df <- df |>
          Climate            = as.factor(Climate))
 
 
-# Discriminatory power: SD of cell means
+# Discriminatory power: SD of cell means #
+
+# Each unique combination of Climate × Management is a cell. If you have 3 climates × 4 management types = 12 cells, and each cell has multiple replicate observations, this averages them down to one value per cell. This removes within-cell noise.
+# each indicator (variable within the ES), you take the SD of those 12 cell means. This measures how much the indicator varies across all Climate × Management combinations — i.e. its discriminatory power. A high SD means the indicator responds strongly to different conditions and is therefore good at distinguishing between them. In short: mean first to collapse replicates, SD second to measure spread across experimental conditions. If you skipped step 1 and computed SD directly on raw values, you'd be mixing within-cell noise with between-cell variation, which would inflate the discriminatory power estimate.
 disc_power <- df |>
   group_by(`Ecosystem service`, Variable, Climate, Management) |>
   summarise(cell_mean = mean(Value), .groups = 'drop') |>
   group_by(`Ecosystem service`, Variable) |>
   summarise(disc = sd(cell_mean), .groups = 'drop')
 
-# Two-way ANOVA with replication
+
+# Two-way ANOVA with replication  <- MAIN ANALYSIS (Two-way ANOVA theory — Zar (2010), Biostatistical Analysis, 5th ed., Prentice Hall)
+
+# For each ecosystem service × indicator combination, it fits a two-way ANOVA with replication and extracts how much of the total variance is explained by each source.
+# aov(Value ~ Management * Climate) — fits the two-way ANOVA. The * means it tests three things simultaneously: Main effect of Management, Main effect of Climate, Their interaction (Management:Climate) — i.e. does the effect of management depend on climate?
+
 anova_res <- df |>
   group_by(`Ecosystem service`, Variable) |>
   group_modify(~ {
-    fit <- aov(Value ~ Management * Climate, data = .x)
-    s   <- summary(fit)[[1]]
-    rownames(s) <- trimws(rownames(s))
-    ss_total <- sum(s$`Sum Sq`)
+    fit <- aov(Value ~ Management * Climate, data = .x)                         # aov(), summary.aov() — base R stats package: Chambers & Hastie (1992), Statistical Models in S. 
+    s   <- summary(fit)[[1]]                                                    # extracts the ANOVA table as a dataframe with rows for each source and columns for Sum Sq, F value, p-value etc.
+    rownames(s) <- trimws(rownames(s))                                          #  removes trailing whitespace from row names (the bug we fixed earlier).
+    ss_total <- sum(s$`Sum Sq`)                                                 # total variance in the data, used to convert raw sums of squares into percentages. pct_mgmt/climate/inter/resid — each term's percentage of total variance. These four should sum to 100%. F_ and p_ values — the F-statistic and p-value for each term, used for the significance stars in panel a.
     tibble(
       pct_mgmt    = s['Management',         'Sum Sq'] / ss_total * 100,
       pct_climate = s['Climate',            'Sum Sq'] / ss_total * 100,
@@ -66,6 +79,19 @@ anova_res <- df |>
     )
   }) |> ungroup()
 
+
+# Test of residuals for H
+test <- df |> filter(`Ecosystem service` == "Biodiversity", Variable == "Shannon index")
+fit <- aov(Value ~ Management * Climate, data = test)
+s <- summary(fit)[[1]]
+rownames(s)
+
+plot(fit)  # diagnostic plots
+shapiro.test(residuals(fit))  # normality test
+bartlett.test(Value ~ interaction(Management, Climate), data = test)  # equal variance test
+
+
+#######################
 results <- disc_power |>
   left_join(anova_res, by = c('Ecosystem service', 'Variable')) |>
   arrange(desc(disc)) |>
