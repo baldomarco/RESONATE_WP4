@@ -74,9 +74,18 @@ summary_tab <- multifunc_tab %>%
     .groups = "drop"
   )
 
+
+summary_tab_mean <- summary_tab %>%
+  mutate(across(
+    Climate:score,
+    ~ as.numeric(sub(" .*", "", .))
+  ))
+
+
 # Save the summary table
 library(openxlsx)
 
+# Make summary with min-max and mean
 write.xlsx(
   summary_tab,
   file = file.path(
@@ -88,7 +97,20 @@ write.xlsx(
 )
 
 
+# Make summary only mean
+write.xlsx(
+  summary_tab_mean,
+  file = file.path(
+    "C:/Users/baldo/Documents/GitHub/RESONATE_WP4/multifunctionality/Tables/",
+    "20260415_MF_ES_Mean_Score.xlsx"
+  ),
+  sheetName = "20260415_MF_ES_Mean_Score",
+  overwrite = TRUE
+)
 
+
+
+#-------------------------------------------------------------------------------
 # reshape the data to have a wide format
 
 library(tidyr)
@@ -121,6 +143,9 @@ final_table <- final_table %>%
 final_table <- as.data.frame(final_table)
 colnames(final_table) <- make.names(colnames(final_table), unique = TRUE)
 
+
+
+#-------------------------------------------------------------------------------
 # Export
 library(flextable)
 library(officer)
