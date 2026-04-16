@@ -74,6 +74,21 @@ summary_tab <- multifunc_tab %>%
     .groups = "drop"
   )
 
+# Save the summary table
+library(openxlsx)
+
+write.xlsx(
+  summary_tab,
+  file = file.path(
+    "C:/Users/baldo/Documents/GitHub/RESONATE_WP4/multifunctionality/Tables/",
+    "20260415_MF_ES_Summary_Score.xlsx"
+  ),
+  sheetName = "20260415_MF_ES_Summary_Score",
+  overwrite = TRUE
+)
+
+
+
 # reshape the data to have a wide format
 
 library(tidyr)
