@@ -983,3 +983,12 @@ write.xlsx(
   overwrite = TRUE
 )
 
+
+# Save Survival Analysis based on Cox models for the Kepler-Meir curves results
+write.csv(
+  all_plot_data,
+  file = file.path(
+    "C:/Users/baldo/Documents/GitHub/RESONATE_WP4/multifunctionality/Tables/",
+    "Survival_Analysis_K-M_Cox_results.csv"
+  ))
+
