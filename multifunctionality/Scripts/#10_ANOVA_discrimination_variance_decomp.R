@@ -399,6 +399,7 @@ final_panel
 ################################################################################
 
 
+library(tidyverse)
 library(survival)
 library(survminer)
 library(dplyr)
@@ -418,18 +419,25 @@ management_colors <- c(
   "UNMANAGED"    = "#787670"
 )
 
-# ── 1. Prepare survival data ──────────────────────────────────────────────────
+
+# ── 0. Add group key to original df ──────────────────────────────────────────
+df <- df |>
+  mutate(
+    rcp     = recode(rcp, `-` = "refclim"),
+    group_key = paste(mgm, rcp, model, windcase, sep = "_")
+  )
+
+# ── 1. Prepare survival data — keep traceability columns ─────────────────────
 df_surv <- df |>
   mutate(
-    rcp        = recode(rcp, `-` = "refclim"),
     Management = as.factor(mgm),
     Climate    = as.factor(rcp),
-    recovered  = ifelse(is.infinite(rt), 0L, 1L),   # 0 = censored, 1 = recovered
+    recovered  = ifelse(is.infinite(rt), 0L, 1L),
     time       = ifelse(is.infinite(rt), sim_horizon, rt)
   ) |>
   filter(!is.na(Management), !is.na(Climate))
 
-# Sanity check
+# df check for SA censored and numbers of stratified cases
 df_surv |> count(Management, recovered)
 
 
@@ -452,14 +460,13 @@ p_value_annotations <- df_surv |>
 
 # ── 3. Cox model + predicted survival curves (per Climate) ────────────────────
 all_plot_data <- data.frame()
-
 for (clim in levels(df_surv$Climate)) {
   
   sub <- df_surv |> filter(Climate == clim)
   if (nrow(sub) < 5 || all(sub$recovered == 0)) next
   
   cox_model <- tryCatch(
-    coxph(Surv(time, recovered) ~ Management, data = sub),
+    coxph(Surv(time, recovered) ~ Management, data = sub),  
     error = function(e) NULL
   )
   if (is.null(cox_model)) next
@@ -468,16 +475,27 @@ for (clim in levels(df_surv$Climate)) {
     
     if (!(mgm_level %in% sub$Management)) next
     
-    fit <- survfit(cox_model, newdata = data.frame(Management = mgm_level), conf.type = "arcsin")
+    fit <- survfit(cox_model,
+                   newdata = data.frame(Management = mgm_level),
+                   conf.type = "plain")
+    
+    sim_ids <- df_surv |>
+      filter(Climate == clim, Management == mgm_level) |>
+      pull(group_key) |>
+      paste(collapse = "; ")
     
     all_plot_data <- bind_rows(
       all_plot_data,
-      surv_summary(fit) |>
-        mutate(Management = mgm_level, Climate = clim)
+      surv_summary(fit, data = sub) |>
+        mutate(
+          Management = mgm_level,
+          Climate    = clim,
+          n_sims     = nrow(sub |> filter(Management == mgm_level)),
+          sim_ids    = sim_ids
+        )
     )
   }
 }
-
 
 # ── 4. Enforce monotonic recovery curves ─────────────────────────────────────
 all_plot_data <- all_plot_data |>
@@ -489,6 +507,13 @@ all_plot_data <- all_plot_data |>
     upper = 1 - cummax(1 - upper)
   ) |>
   ungroup()
+
+# Summary of group sizes for transparency 
+all_plot_data |>
+  distinct(Management, Climate, n_sims) |>
+  arrange(Climate, Management) |>
+  as.data.frame() |>
+  print()
 
 
 # ── 5. Plot ───────────────────────────────────────────────────────────────────
@@ -528,6 +553,14 @@ final_plot <- ggplot(all_plot_data,
 print(final_plot)
 
 #ggsave("Fig_resilience_survival.pdf", final_plot, width = 36, height = 14, units = "cm", dpi = 300)
+
+# Save Survival Analysis based on Cox models for the Kepler-Meir curves results
+write.csv(
+  all_plot_data,
+  file = file.path(
+    "C:/Users/baldo/Documents/GitHub/RESONATE_WP4/multifunctionality/Tables/",
+    "Survival_Analysis_K-M_Cox_results_with_simID.csv"
+  ))
 
 
 ################################################################################
@@ -991,4 +1024,3 @@ write.csv(
     "C:/Users/baldo/Documents/GitHub/RESONATE_WP4/multifunctionality/Tables/",
     "Survival_Analysis_K-M_Cox_results.csv"
   ))
-
