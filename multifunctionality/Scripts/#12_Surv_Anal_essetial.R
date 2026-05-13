@@ -1,8 +1,14 @@
+# Marco Baldo 25-04-2026 contact: baldo@fld.czu.cz
+# Survival Analysis essential
+# Multifunctionality Article: 
+
 ################################################################################
-#       3RD SURVIVAL ANALYSIS ON RECOVERY TIME
+#   TEST P11 - CORRECTION OF THE MAIN SURVIVAL ANALYSIS TEST (COX ADJUSTED)
 ################################################################################
 
-
+HERE IS THE FINAL VERSION IN WHICH I FIXED THE PROBLEM OF MANAGEMENT * CLIMATE 
+TO ANALYSIS INTERACTIONS BETWENN THEM AND CLUSTERING PER RCM AND WIND CASES
+  
 library(tidyverse)
 library(survival)
 library(survminer)
@@ -31,11 +37,12 @@ df <- df |>
     group_key = paste(mgm, rcp, model, windcase, sep = "_")
   )
 
-# ── 1. Prepare survival data — keep traceability columns ─────────────────────
+# ── 1. Prepare survival data — keep track for columns cluster  ────────────────
 df_surv <- df |>
   mutate(
-    Management = as.factor(mgm),
-    Climate    = as.factor(rcp),
+    Management = factor(mgm),
+    Climate    = factor(rcp),
+    cluster_id = paste(model, windcase, sep = "_"),
     recovered  = ifelse(is.infinite(rt), 0L, 1L),
     time       = ifelse(is.infinite(rt), sim_horizon, rt)
   ) |>
@@ -45,61 +52,56 @@ df_surv <- df |>
 df_surv |> count(Management, recovered)
 
 
-# ── 2. Log-rank p-values (one per Management column) ─────────────────────────
+# ── 2. Log-rank p-values (one per Climate row) ─────────────────────────
 p_value_annotations <- df_surv |>
-  group_by(Management) |>
+  group_by(Climate) |>
   group_modify(~ {
-    sdiff <- tryCatch(
-      survdiff(Surv(time, recovered) ~ Climate, data = .x),
-      error = function(e) NULL
-    )
-    if (is.null(sdiff) || is.na(sdiff$chisq)) return(tibble(p_value_label = NA))
+    sdiff <- survdiff(Surv(time, recovered) ~ Management, data = .x)
     p_val <- 1 - pchisq(sdiff$chisq, df = length(sdiff$n) - 1)
-    tibble(p_value_label = paste0("Log-rank p = ", format.pval(p_val, digits = 3)))
-  }) |>
-  ungroup() |>
-  filter(!is.na(p_value_label)) |>
-  crossing(Climate = levels(df_surv$Climate))  # repeat across all rows
+    tibble(p_value_label = paste0("p = ", format.pval(p_val, digits = 3)))
+  })
 
 
-# ── 3. Cox model + predicted survival curves (per Climate) ────────────────────
+# ── 3. Cox model + predicted survival curves (Management * Climate) ───────────
+cox_model <- coxph(
+  Surv(time, recovered) ~ Management * Climate + cluster(cluster_id),
+  data = df_surv
+)
+
+
 all_plot_data <- data.frame()
+
 for (clim in levels(df_surv$Climate)) {
-  
-  sub <- df_surv |> filter(Climate == clim)
-  if (nrow(sub) < 5 || all(sub$recovered == 0)) next
-  
-  cox_model <- tryCatch(
-    coxph(Surv(time, recovered) ~ Management, data = sub),  
-    error = function(e) NULL
-  )
-  if (is.null(cox_model)) next
-  
   for (mgm_level in levels(df_surv$Management)) {
     
-    if (!(mgm_level %in% sub$Management)) next
+    newdata <- data.frame(
+      Management = mgm_level,
+      Climate    = clim,
+      cluster_id = NA
+    )
     
-    fit <- survfit(cox_model,
-                   newdata = data.frame(Management = mgm_level),
-                   conf.type = "plain")
+    fit <- survfit(cox_model, newdata = newdata)
     
-    sim_ids <- df_surv |>
+    n_sims <- df_surv |>
       filter(Climate == clim, Management == mgm_level) |>
-      pull(group_key) |>
-      paste(collapse = "; ")
+      nrow()
     
     all_plot_data <- bind_rows(
       all_plot_data,
-      surv_summary(fit, data = sub) |>
+      surv_summary(fit, data = df_surv) |>
         mutate(
           Management = mgm_level,
           Climate    = clim,
-          n_sims     = nrow(sub |> filter(Management == mgm_level)),
-          sim_ids    = sim_ids
+          n_sims     = n_sims
         )
     )
   }
 }
+
+
+# Test the cox model
+cox.zph(cox_model)
+
 
 # ── 4. Enforce monotonic recovery curves ─────────────────────────────────────
 all_plot_data <- all_plot_data |>
@@ -120,6 +122,7 @@ all_plot_data |>
   print()
 
 
+
 # ── 5. Plot ───────────────────────────────────────────────────────────────────
 final_plot <- ggplot(all_plot_data,
                      aes(x = time, y = 1 - surv,
@@ -136,7 +139,7 @@ final_plot <- ggplot(all_plot_data,
   facet_grid(Climate ~ Management) +
   ylim(0, 1.25) +
   labs(
-    title = "Stand Recovery by Management — Faceted by Climate",
+    title = "Growing Stocks Recovery by Management — Faceted by Climate",
     x     = "Time [years]",
     y     = "Cumulative recovery probability",
     color = "Management", fill = "Management"
@@ -158,44 +161,40 @@ print(final_plot)
 
 #ggsave("Fig_resilience_survival.pdf", final_plot, width = 36, height = 14, units = "cm", dpi = 300)
 
-# Save Survival Analysis based on Cox models for the Kepler-Meir curves results
-write.csv(
-  all_plot_data,
-  file = file.path(
-    "C:/Users/baldo/Documents/GitHub/RESONATE_WP4/multifunctionality/Tables/",
-    "Survival_Analysis_K-M_Cox_results_with_simID.csv"
-  ))
-
 
 ################################################################################
 #   VARIANCE PARTITIONING ANALYSIS
 ################################################################################
 
-MAKING THE VARIANCE PARTITIONING IN THE SURVIVAL ANALYSIS COX model.response
+MAKING THE VARIANCE PARTITIONING IN THE SURVIVAL ANALYSIS COX model response
 
 # ── Survival-based Variance Decomposition ─────────────────────────────────────
 
 # ── 1. Fit nested Cox models ───────────────────────────────────────────────────
 
 # Null model (intercept only)
-cox_null <- coxph(Surv(time, recovered) ~ 1, 
-                  data = df_surv)
+cox_null <- coxph(Surv(time, recovered) ~ 1, data = df_surv)
 
 # Main effect Management only
-cox_mgm  <- coxph(Surv(time, recovered) ~ Management, 
+cox_mgm  <- coxph(Surv(time, recovered) ~ Management + cluster(cluster_id), 
                   data = df_surv)
 
 # Main effect Climate only
-cox_clim <- coxph(Surv(time, recovered) ~ Climate, 
+cox_clim <- coxph(Surv(time, recovered) ~ Climate + cluster(cluster_id), 
                   data = df_surv)
 
 # Both main effects
-cox_both <- coxph(Surv(time, recovered) ~ Management + Climate, 
+cox_both <- coxph(Surv(time, recovered) ~ Management + Climate + cluster(cluster_id), 
                   data = df_surv)
 
 # Full model with interaction
-cox_full <- coxph(Surv(time, recovered) ~ Management * Climate, 
+cox_full <- coxph(Surv(time, recovered) ~ Management * Climate + cluster(cluster_id), 
                   data = df_surv)
+
+
+# Initial clarificative test
+summary(cox_full)
+
 
 # ── 2. Likelihood Ratio Tests (LRT) ───────────────────────────────────────────
 

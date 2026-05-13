@@ -1,3 +1,7 @@
+# Marco Baldo 25-04-2026 contact: baldo@fld.czu.cz
+# Survival Analysis tests predictve with GAM model
+# Multifunctionality Article: 
+
 # install.packages("flexsurv") 
 # A parametric survival model — it assumes the recovery times follow a specific distribution, which allows extrapolation beyond t=50: Given that several of your combinations are clearly not recovering within 50 years, a parametric model would be much more informative ecologically — it would give you probable recovery times with CI even for the never-recovered cases.
 # The workflow would be:

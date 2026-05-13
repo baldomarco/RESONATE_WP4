@@ -1,4 +1,9 @@
-################################################################################
+# Marco Baldo 25-11-2024 contact: baldo@fld.czu.cz
+# ANOVA Discrimination - variable decomposition analysis test
+# Survival Analysis tests
+# Multifunctionality Article: 
+
+#1##############################################################################
 #    SECOND ANALYSIS ON RECOVERY   
 ################################################################################
 
@@ -150,7 +155,7 @@ final_panel <- pA + pB
 final_panel
 
 
-################################################################################
+#2###############################################################################
 #           TEST P2
 ################################################################################
 
@@ -330,7 +335,7 @@ final_panel
 #       width = 32, height = 10, units = "cm")
 
 
-################################################################################
+#3###############################################################################
 #           TEST P3
 ################################################################################
 
@@ -510,7 +515,7 @@ final_panel
 #       width = 32, height = 10, units = "cm")
 
 
-################################################################################
+#4###############################################################################
 #           TEST P4
 ################################################################################
 
@@ -672,7 +677,7 @@ final_panel
 
 
 
-################################################################################
+#5###############################################################################
 #           TEST P5
 ################################################################################
 
@@ -773,10 +778,6 @@ cox_tidy <- broom::tidy(cox_fit, exponentiate = TRUE, conf.int = TRUE) |>
 
 print(cox_tidy, n = Inf)
 
-# Forest plot
-ggforest(cox_fit, data = df_surv,
-         main = "Cox PH — Hazard ratios for recovery")
-
 
 # ── 6. Check proportional hazards assumption ──────────────────────────────────
 ph_test <- cox.zph(cox_fit)
@@ -785,13 +786,14 @@ ggcoxzph(ph_test)    # should look like flat horizontal lines
 
 
 
-################################################################################
+#6###############################################################################
 #           TEST P6
 ################################################################################
 
-THIS IS MAKING THE SURVIVAL ANALYSIS K-M ONE THE RECOVERY TIME CAUSE MISSING VALUES AND WE WANT TO VISUALIZE THE RECOVERY FUNCTION
-THIS IS THE SAME ANALYSIS APPLIED IN BDV WITHOUT COX MODEL AND 
-PVALUE ON CLIMATE ROWS
+THIS IS MAKING THE SURVIVAL ANALYSIS K-M ONE THE RECOVERY TIME CAUSE MISSING 
+VALUES AND WE WANT TO VISUALIZE THE RECOVERY FUNCTION
+THIS IS THE SAME ANALYSIS APPLIED IN BDV WITH COX MODEL INTEGRATED AND 
+PVALUE BASED ON MNG INFLUENCE ON RECOVERY COMPERING MGM WITHIN THE SAME CLIMATE
 
 library(survival)
 library(survminer)
@@ -926,13 +928,14 @@ print(final_plot)
 #ggsave("Fig_resilience_survival.pdf", final_plot, width = 36, height = 14, units = "cm", dpi = 300)
 
 
-################################################################################
+#7###############################################################################
 #           TEST P7
 ################################################################################
 
-THIS IS MAKING THE SURVIVAL ANALYSIS K-M ONE THE RECOVERY TIME CAUSE MISSING VALUES AND WE WANT TO VISUALIZE THE RECOVERY FUNCTION
-THIS IS THE SAME ANALYSIS APPLIED IN BDV WITHOUT COX MODEL AND PVALUE ON 
-MANAGEMENT ROWS
+THIS IS MAKING THE SURVIVAL ANALYSIS K-M ON THE RECOVERY TIME CAUSE MISSING 
+VALUES AND WE WANT TO VISUALIZE THE RECOVERY FUNCTION. THIS IS THE SAME 
+ANALYSIS APPLIED IN BDV WITH COX MODEL ONLY ON MANAGEMENT
+PVALUE BASED ON CLIM INFLUENCE ON RECOVERY COMPERING RCP WITHIN THE SAME MGM
 
 
 library(survival)
@@ -1043,7 +1046,7 @@ final_plot <- ggplot(all_plot_data,
   facet_grid(Climate ~ Management) +
   ylim(0, 1.25) +
   labs(
-    title = "Stand Recovery by Management — Faceted by Climate",
+    title = "Growing Stock Recovery by Management — Faceted by Climate",
     x     = "Time [years]",
     y     = "Cumulative recovery probability",
     color = "Management", fill = "Management"
@@ -1068,7 +1071,7 @@ print(final_plot)
 
 
 
-################################################################################
+#8###############################################################################
 #        TEST P8 - PROPOTION OF RECOVERY - TABLE CREATION
 ################################################################################
 
@@ -1308,7 +1311,7 @@ ggplot(recovery_28, aes(x = Management, y = recovery, fill = Management)) +
   labs(
     x     = NULL,
     y     = "Cumulative recovery by year 28 [%]",
-    title = "Stand Recovery by Year 28 — Faceted by Climate"
+    title = "Growing Stock Recovery by Year 28 — Faceted by Climate"
   ) +
   theme_bw(base_size = 11) +
   theme(
@@ -1468,7 +1471,7 @@ write.xlsx(
 )
 
 
-################################################################################
+#9###############################################################################
 #   TEST P9 - VARIANCE PARTITIONING ANALYSIS
 ################################################################################
 
@@ -1500,6 +1503,13 @@ cox_both <- coxph(Surv(time, recovered) ~ Management + Climate,
 # Full model with interaction
 cox_full <- coxph(Surv(time, recovered) ~ Management * Climate, 
                   data = df_surv)
+
+# Analysis of Deviance Table
+anova(cox_full)
+
+# Initial clarificative test
+summary(cox_full)
+
 
 # ── 2. Likelihood Ratio Tests (LRT) ───────────────────────────────────────────
 
@@ -1609,115 +1619,1151 @@ write.xlsx(
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-################################################################################
-#   TEST P10 - ART ANOVA WORKIG PROGRESS
+#10#############################################################################
+#   TEST P10 - CORRECTION OF THE MAIN SURVIVAL ANALYSIS TEST (COX ADJUSTED)
 ################################################################################
 
 
-THIS SECTION MUST BE ADAPTED AND IT IS MAKING THE ART ANOVA ANALYSIS
+HERE IS THE VERSION IN WHICH I FIXED THE PROBLEM OF MANAGEMENT * CLIMATE AS INTERACTION - NO ADDITIVE
+TO ANALYSIS INTERACTIONS BETWENN THEM AND CLUSTERING PER RCM AND WIND CASES
+THIS IS THE SAME ANALYSIS APPLIED IN BDV WITH COX MODEL INTEGRATED AND 
+PVALUE BASED ON CLIM INFLUENCE ON RECOVERY COMPERING RCP WITHIN THE SAME MGM
 
-# Multifunctuinality
 
-library(ARTool)
+library(tidyverse)
+library(survival)
+library(survminer)
+library(dplyr)
+library(ggplot2)
 
-# ── Two-way ART ANOVA ─────────────────────────────────────────────────────────
-anova_res <- df |>
-  group_by(`Ecosystem service`, Variable) |>
+# Load data
+df <- read_csv("C:/Users/baldo/Documents/GitHub/RESONATE_WP4/multifunctionality/ANOVA_discrimination_analysis/20260421_impact_recoverytime_auc.csv")
+
+# ── 0. Parameters ─────────────────────────────────────────────────────────────
+sim_horizon <- 50
+
+management_colors <- c(
+  "ADAPTATION"   = "#E69F00",
+  "BAU"          = "#185FA5",
+  "BIOECONOMY"   = "#1D9E75",
+  "CONSERVATION" = "#D85A30",
+  "UNMANAGED"    = "#787670"
+)
+
+
+# ── 0. Add group key to original df ──────────────────────────────────────────
+df <- df |>
+  mutate(
+    rcp     = recode(rcp, `-` = "refclim"),
+    group_key = paste(mgm, rcp, model, windcase, sep = "_")
+  )
+
+# ── 1. Prepare survival data — keep track for columns cluster  ────────────────
+df_surv <- df |>
+  mutate(
+    Management = factor(mgm),
+    Climate    = factor(rcp),
+    cluster_id = paste(model, windcase, sep = "_"),
+    recovered  = ifelse(is.infinite(rt), 0L, 1L),
+    time       = ifelse(is.infinite(rt), sim_horizon, rt)
+  ) |>
+  filter(!is.na(Management), !is.na(Climate))
+
+# df check for SA censored and numbers of stratified cases
+df_surv |> count(Management, recovered)
+
+
+# ── 2. Log-rank p-values (one per Climate row) ─────────────────────────
+p_value_annotations <- df_surv |>
+  group_by(Climate) |>
   group_modify(~ {
-    fit <- art(Value ~ Management * Climate, data = .x)
-    a   <- anova(fit)
+    sdiff <- survdiff(Surv(time, recovered) ~ Management, data = .x)
+    p_val <- 1 - pchisq(sdiff$chisq, df = length(sdiff$n) - 1)
+    tibble(p_value_label = paste0("p = ", format.pval(p_val, digits = 3)))
+  })
+
+
+# ── 3. Cox model + predicted survival curves (Management * Climate) ───────────
+cox_model <- coxph(
+  Surv(time, recovered) ~ Management * Climate + cluster(cluster_id),
+  data = df_surv
+)
+
+
+all_plot_data <- data.frame()
+
+for (clim in levels(df_surv$Climate)) {
+  for (mgm_level in levels(df_surv$Management)) {
     
-    # ART anova() returns a Term column, not rownames
-    a   <- as.data.frame(a)
-    rownames(a) <- trimws(a$Term)
-    
-    ss_total <- sum(a$`Sum Sq`)
-    
-    tibble(
-      pct_mgmt    = a["Management",         "Sum Sq"] / ss_total * 100,
-      pct_climate = a["Climate",            "Sum Sq"] / ss_total * 100,
-      pct_inter   = a["Management:Climate", "Sum Sq"] / ss_total * 100,
-      pct_resid   = 100 -
-        a["Management",         "Sum Sq"] / ss_total * 100 -
-        a["Climate",            "Sum Sq"] / ss_total * 100 -
-        a["Management:Climate", "Sum Sq"] / ss_total * 100,
-      F_mgmt      = a["Management",         "F value"],
-      F_climate   = a["Climate",            "F value"],
-      F_inter     = a["Management:Climate", "F value"],
-      p_mgmt      = a["Management",         "Pr(>F)"],
-      p_climate   = a["Climate",            "Pr(>F)"],
-      p_inter     = a["Management:Climate", "Pr(>F)"]
+    newdata <- data.frame(
+      Management = mgm_level,
+      Climate    = clim,
+      cluster_id = NA
     )
-  }) |> ungroup()
+    
+    fit <- survfit(cox_model, newdata = newdata)
+    
+    n_sims <- df_surv |>
+      filter(Climate == clim, Management == mgm_level) |>
+      nrow()
+    
+    all_plot_data <- bind_rows(
+      all_plot_data,
+      surv_summary(fit, data = df_surv) |>
+        mutate(
+          Management = mgm_level,
+          Climate    = clim,
+          n_sims     = n_sims
+        )
+    )
+  }
+}
 
 
-# ── Diagnostic test (run per ecosystem service × variable) ───────────────────
-test <- df |> filter(`Ecosystem service` == "Biodiversity", Variable == "Shannon index")
-fit_art <- art(Value ~ Management * Climate, data = test)
-summary(fit_art)   # aligned response means should be ~0
-anova(fit_art)
+# Test the cox model
+cox.zph(cox_model)
 
 
-# Resilience
+# ── 4. Enforce monotonic recovery curves ─────────────────────────────────────
+all_plot_data <- all_plot_data |>
+  group_by(Climate, Management) |>
+  arrange(time, .by_group = TRUE) |>
+  mutate(
+    surv  = 1 - cummax(1 - surv),
+    lower = 1 - cummax(1 - lower),
+    upper = 1 - cummax(1 - upper)
+  ) |>
+  ungroup()
 
-library(ARTool)
+# Summary of group sizes for transparency 
+all_plot_data |>
+  distinct(Management, Climate, n_sims) |>
+  arrange(Climate, Management) |>
+  as.data.frame() |>
+  print()
 
-# ── 3. Two-way ART ANOVA with replication ────────────────────────────────────
+
+
+# ── 5. Plot ───────────────────────────────────────────────────────────────────
+final_plot <- ggplot(all_plot_data,
+                     aes(x = time, y = 1 - surv,
+                         color = Management, fill = Management)) +
+  geom_step(size = 1.2) +
+  geom_ribbon(aes(ymin = 1 - upper, ymax = 1 - lower),
+              alpha = 0.3, color = NA) +
+  scale_color_manual(values = management_colors) +
+  scale_fill_manual(values  = management_colors) +
+  geom_hline(yintercept = 1, color = "red", linetype = "dashed", size = 0.5) +
+  geom_text(data = p_value_annotations,
+            aes(x = 10, y = 1.15, label = p_value_label),
+            inherit.aes = FALSE, hjust = 0, size = 2.8, fontface = "italic") +
+  facet_grid(Climate ~ Management) +
+  ylim(0, 1.25) +
+  labs(
+    title = "Growing Stocks Recovery by Management — Faceted by Climate",
+    x     = "Time [years]",
+    y     = "Cumulative recovery probability",
+    color = "Management", fill = "Management"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    legend.position      = "bottom",
+    legend.title         = element_text(face = "bold", size = 12),
+    plot.title           = element_text(hjust = 0.5, face = "bold", size = 14,
+                                        margin = margin(b = 10)),
+    strip.text           = element_text(face = "bold", size = 12),
+    strip.placement      = "outside",
+    strip.background     = element_rect(fill = "grey90", color = "black"),
+    axis.text.x          = element_text(angle = 45, hjust = 1),
+    panel.border         = element_rect(color = "black", fill = NA, size = 0.5)
+  )
+
+print(final_plot)
+
+#ggsave("Fig_resilience_survival.pdf", final_plot, width = 36, height = 14, units = "cm", dpi = 300)
+
+
+################################################################################
+#   VARIANCE PARTITIONING ANALYSIS
+################################################################################
+
+MAKING THE VARIANCE PARTITIONING IN THE SURVIVAL ANALYSIS COX model response
+
+# ── Survival-based Variance Decomposition ─────────────────────────────────────
+
+# ── 1. Fit nested Cox models ───────────────────────────────────────────────────
+
+# Null model (intercept only)
+cox_null <- coxph(Surv(time, recovered) ~ 1, data = df_surv)
+
+# Main effect Management only
+cox_mgm  <- coxph(Surv(time, recovered) ~ Management + cluster(cluster_id), 
+                  data = df_surv)
+
+# Main effect Climate only
+cox_clim <- coxph(Surv(time, recovered) ~ Climate + cluster(cluster_id), 
+                  data = df_surv)
+
+# Both main effects
+cox_both <- coxph(Surv(time, recovered) ~ Management + Climate + cluster(cluster_id), 
+                  data = df_surv)
+
+# Full model with interaction
+cox_full <- coxph(Surv(time, recovered) ~ Management * Climate + cluster(cluster_id), 
+                  data = df_surv)
+
+
+# Initial clarificative test
+summary(cox_full)
+
+
+# ── 2. Likelihood Ratio Tests (LRT) ───────────────────────────────────────────
+
+# LRT for each term = 2 * (logLik(larger) - logLik(smaller))
+lrt_mgm  <- 2 * (cox_mgm$loglik[2]  - cox_null$loglik[2])
+lrt_clim <- 2 * (cox_clim$loglik[2] - cox_null$loglik[2])
+lrt_both <- 2 * (cox_both$loglik[2] - cox_null$loglik[2])
+lrt_full <- 2 * (cox_full$loglik[2] - cox_null$loglik[2])
+
+# Unique contribution of each term (Type II decomposition)
+lrt_mgm_unique  <- 2 * (cox_both$loglik[2] - cox_clim$loglik[2])  # mgm | clim
+lrt_clim_unique <- 2 * (cox_both$loglik[2] - cox_mgm$loglik[2])   # clim | mgm
+lrt_interaction <- 2 * (cox_full$loglik[2] - cox_both$loglik[2])  # interaction
+lrt_total       <- lrt_mgm_unique + lrt_clim_unique + lrt_interaction
+
+# ── 3. Convert to % of explained variation (analogous to η²) ──────────────────
+
+variance_decomp <- tibble(
+  Term             = c("Management", "Climate", "Management × Climate"),
+  LRT_chi2         = round(c(lrt_mgm_unique, lrt_clim_unique, lrt_interaction), 2),
+  df               = c(
+    length(levels(df_surv$Management)) - 1,
+    length(levels(df_surv$Climate))    - 1,
+    (length(levels(df_surv$Management)) - 1) * (length(levels(df_surv$Climate)) - 1)
+  ),
+  p_value          = round(c(
+    pchisq(lrt_mgm_unique,  df = length(levels(df_surv$Management)) - 1, lower.tail = FALSE),
+    pchisq(lrt_clim_unique, df = length(levels(df_surv$Climate))    - 1, lower.tail = FALSE),
+    pchisq(lrt_interaction, df = (length(levels(df_surv$Management)) - 1) * 
+             (length(levels(df_surv$Climate))   - 1), lower.tail = FALSE)
+  ), 4),
+  pct_explained    = round(c(
+    lrt_mgm_unique, lrt_clim_unique, lrt_interaction
+  ) / lrt_total * 100, 1)
+)
+
+# ── 4. Nagelkerke R² per model (overall explanatory power) ────────────────────
+# R²_Nagelkerke = (1 - exp(-LRT/n)) / (1 - exp(2*logLik(null)/n))
+
+# ── Fixed Nagelkerke R² ───────────────────────────────────────────────────────
+
+n <- nrow(df_surv)
+
+# For Cox, null loglik is loglik[1] (before any covariates)
+null_loglik <- cox_mgm$loglik[1]  # same for all models
+
+nagelkerke <- function(full_loglik, null_loglik, n) {
+  lrt    <- 2 * (full_loglik - null_loglik)
+  r2_cs  <- 1 - exp(-lrt / n)
+  r2_max <- 1 - exp(-2 * abs(null_loglik) / n)  # abs() fixes sign issue
+  round(r2_cs / r2_max, 3)
+}
+
+r2_table <- tibble(
+  Model         = c("Management only", "Climate only",
+                    "Management + Climate", "Management * Climate"),
+  Nagelkerke_R2 = c(
+    nagelkerke(cox_mgm$loglik[2],  null_loglik, n),
+    nagelkerke(cox_clim$loglik[2], null_loglik, n),
+    nagelkerke(cox_both$loglik[2], null_loglik, n),
+    nagelkerke(cox_full$loglik[2], null_loglik, n)
+  )
+)
+
+as.data.frame(r2_table) |> print()
+
+# ── 5. Print results ───────────────────────────────────────────────────────────
+
+cat("═══════════════════════════════════════════════════════\n")
+cat("Variance Decomposition — Cox LRT (Type II, analogous to η²)\n")
+cat("═══════════════════════════════════════════════════════\n")
+as.data.frame(variance_decomp) |> print()
+
+cat("\n═══════════════════════════════════════════════════════\n")
+cat("Overall Explanatory Power — Nagelkerke R²\n")
+cat("═══════════════════════════════════════════════════════\n")
+as.data.frame(r2_table) |> print()
+
+
+
+# Save RT survival analysis cox model 
+# Variance Decomposition — Cox LRT (Type II, analogous to η²)\n
+write.xlsx(
+  variance_decomp,
+  file = file.path(
+    "C:/Users/baldo/Documents/GitHub/RESONATE_WP4/multifunctionality/Tables/",
+    "RT_variance_partitioning.xlsx"
+  ),
+  sheetName = "RT_variance_partitioning",
+  overwrite = TRUE
+)
+
+
+# Save RT survival analysis cox model Overall Explanatory Power — Nagelkerke R²\n
+write.xlsx(
+  r2_table,
+  file = file.path(
+    "C:/Users/baldo/Documents/GitHub/RESONATE_WP4/multifunctionality/Tables/",
+    "RT_variance_partitioning_Overall_Explanatory_Power.xlsx"
+  ),
+  sheetName = "Overall Explanatory Power",
+  overwrite = TRUE
+)
+
+
+
+#11#############################################################################
+#   TEST P11 - CORRECTION OF THE MAIN SURVIVAL ANALYSIS TEST K-M CURVE LAURA
+################################################################################
+
+THIS IS THE SECTION WHERE LAURA AND ME FIXED THE SURVIVAL ANALYSIS BASED ON WHAT
+WAS IMPORTANT FOR OUR REFERENCE CASES AND OUR MODEL
+
+HERE THERE IS THE FIRST PART KEPLEN-MEIER SCRIPT WITHOUT COX MODELS
+
+library(tidyverse)
+library(survival)
+library(survminer)
+library(dplyr)
+library(ggplot2)
+
+# Load data
+#df <- read_csv("C:/Users/baldo/Documents/GitHub/RESONATE_WP4/multifunctionality/ANOVA_discrimination_analysis/20260421_impact_recoverytime_auc.csv")
+# Load data
+df <- read_csv("C:/Users/baldo/Documents/GitHub/RESONATE_WP4/multifunctionality/ANOVA_discrimination_analysis/20260421_impact_recoverytime_auc.csv")
+
+# ── 0. Parameters ─────────────────────────────────────────────────────────────
+sim_horizon <- 50
+penalty_primary    <- 50   # primary imputation:  rt = sim_horizon (boundary)
+penalty_sensitivity <- 75  # sensitivity check:   rt = 75 (beyond window)
+
+management_colors <- c(
+  "ADAPTATION"   = "#E69F00",
+  "BAU"          = "#185FA5",
+  "BIOECONOMY"   = "#1D9E75",
+  "CONSERVATION" = "#D85A30",
+  "UNMANAGED"    = "#787670"
+)
+
+# ── 1. Recode & flag non-recoverers ──────────────────────────────────────────
+df <- df |>
+  mutate(
+    rcp       = recode(rcp, `-` = "refclim"),
+    group_key = paste(mgm, rcp, model, windcase, sep = "_"),
+    # TRUE for the 27 cases that never recovered
+    is_censored = is.infinite(rt) | is.na(rt)
+  )
+
+# Sanity check: confirm censored cases are clustered in rcp45
+df |>
+  filter(is_censored) |>
+  count(rcp, mgm) |>
+  print()
+
+# ── 2. Impute rt — primary & sensitivity ─────────────────────────────────────
+# Primary: rt_imp = 50 for non-recoverers
+# Sensitivity: rt_imp_sens = 75 for non-recoverers
+df <- df |>
+  mutate(
+    rt_imp      = if_else(is_censored, as.numeric(penalty_primary),    rt),
+    rt_imp_sens = if_else(is_censored, as.numeric(penalty_sensitivity), rt)
+  )
+
+# Quick summary: compare distributions with and without imputation
+cat("\n── rt distribution summary (recovered cases only) ──\n")
+df |> filter(!is_censored) |> summarise(
+  n    = n(),
+  mean = mean(rt),
+  sd   = sd(rt),
+  med  = median(rt),
+  min  = min(rt),
+  max  = max(rt)
+) |> print()
+
+cat("\n── rt_imp distribution summary (all cases, primary imputation) ──\n")
+df |> summarise(
+  n           = n(),
+  n_imputed   = sum(is_censored),
+  mean        = mean(rt_imp),
+  sd          = sd(rt_imp),
+  med         = median(rt_imp),
+  min         = min(rt_imp),
+  max         = max(rt_imp)
+) |> print()
+
+
+a<-df %>% select(mgm, model, windcase,rcp, rt_imp, is_censored)
+head(a)
+
+df2 <- a %>%  mutate(  event = ifelse(is_censored, 0, 1)  )
+
+surv_obj <- Surv(  time  = df2$rt_imp,  event = df2$event)
+
+#  MANAGEMENT EFFECT:
+km_mgm <- survfit(  surv_obj ~ mgm,  data = df2)
+
+ggsurvplot(  km_mgm,  data = df2,  risk.table = TRUE,  pval = TRUE,
+             conf.int = TRUE,  xlab = "Years after disturbance",  
+             ylab = "Probability of NOT yet recovering",
+             legend.title = "Management",  ggtheme = theme_bw())
+
+#  RCP EFFECT:
+km_rcp <- survfit(  surv_obj ~ rcp   ,  data = df2)
+
+ggsurvplot( km_rcp, data = df2, risk.table = TRUE,pval = TRUE,  conf.int = TRUE,
+            xlab = "Years after disturbance",
+            ylab = "Probability of NOT yet recovering",
+            legend.title = "Management",
+            ggtheme = theme_bw() )
+
+
+summary(km_rcp, times = 23)
+
+# Which recovers faster?
+# Look at t specific year
+summary(km_mgm, times = 23)
+km23 <- summary(km_mgm, times = 23)
+
+
+# CHANGE TO PROBABILITY OF RECOVERY: (fun="event")
+ggsurvplot(  km_mgm,  data = df2,  risk.table = TRUE,  pval = TRUE,fun = "event",
+             conf.int = TRUE,  xlab = "Years after disturbance",  
+             ylab = "Probability of recovering",
+             legend.title = "Management",  ggtheme = theme_bw())
+
+
+
+ggsurvplot( km_rcp, data = df2, risk.table = TRUE,pval = TRUE,  conf.int = TRUE,fun = "event",
+            xlab = "Years after disturbance",
+            ylab = "Probability of recovering",
+            legend.title = "Management",
+            ggtheme = theme_bw() )
+
+
+
+#12#############################################################################
+#   TEST P12 - CORRECTION OF THE MAIN SURVIVAL ANALYSIS TEST K-M CURVE MARCO
+################################################################################
+
+SAME BUT ADAPTED JUST FOR THE VISUALIZATION
+
+library(tidyverse)
+library(survival)
+library(survminer)
+library(gridExtra)
+library(grid)
+
+# ── Parameters ─────────────────────────────────────────────────────────────────
+sim_horizon <- 50
+
+management_colors <- c(
+  "ADAPTATION"   = "#E69F00",
+  "BAU"          = "#185FA5",
+  "BIOECONOMY"   = "#1D9E75",
+  "CONSERVATION" = "#D85A30",
+  "UNMANAGED"    = "#787670"
+)
+
+rcp_colors <- c(
+  "refclim" = "#4DAF4A",
+  "rcp45"   = "#FF7F00",
+  "rcp85"   = "#E41A1C"
+)
+
+# ── Data prep ──────────────────────────────────────────────────────────────────
+df <- read_csv("C:/Users/baldo/Documents/GitHub/RESONATE_WP4/multifunctionality/ANOVA_discrimination_analysis/20260421_impact_recoverytime_auc.csv") |>
+  mutate(
+    rcp   = recode(rcp, `-` = "refclim"),
+    time  = if_else(is.infinite(rt) | is.na(rt), as.numeric(sim_horizon), rt),
+    event = if_else(is.infinite(rt) | is.na(rt), 0L, 1L),
+    mgm   = factor(mgm, levels = names(management_colors)),
+    rcp   = factor(rcp, levels = names(rcp_colors))
+  )
+
+# ── Helper: extract legend labels from survfit strata names ───────────────────
+# survfit prepends "var=value"; strip the prefix so palette matching works
+strip_strata <- function(fit, var) {
+  gsub(paste0(var, "="), "", names(fit$strata))
+}
+
+# ── Helper: build ggsurvplot grobs with correct colors ────────────────────────
+make_km <- function(fit, data, palette, strata_var, legend_title, title = NULL) {
+  
+  labs    <- strip_strata(fit, strata_var)   # e.g. c("refclim","rcp45","rcp85")
+  palette <- palette[labs]                   # reorder/subset to match strata order
+  
+  p <- ggsurvplot(
+    fit, data = data,
+    fun               = "event",
+    conf.int          = TRUE,
+    risk.table        = TRUE,
+    risk.table.y.text = FALSE,
+    pval              = TRUE,
+    pval.size         = 3.5,
+    palette           = palette,             # now correctly ordered
+    legend.labs       = labs,
+    title             = title,
+    xlab              = "Years after disturbance",
+    ylab              = "Cumulative recovery",
+    legend.title      = legend_title,
+    font.main         = c(11, "bold"),
+    font.x            = 9, font.y = 9,
+    font.tickslab     = 8, font.legend = 8,
+    tables.theme      = theme_cleantable(),
+    ggtheme           = theme_bw(base_size = 9)
+  )
+  
+  sc <- scale_x_continuous(limits = c(0, sim_horizon), breaks = seq(0, sim_horizon, 10))
+  p$plot  <- p$plot  + sc + theme(plot.margin = margin(4, 6, 2, 6))
+  p$table <- p$table + sc + theme(plot.margin = margin(2, 6, 4, 6))
+  
+  list(
+    plot  = ggplotGrob(p$plot),
+    table = ggplotGrob(p$table)
+  )
+}
+
+# ── Helper: equalise grob widths across a list of grobs ───────────────────────
+align_widths <- function(grob_list) {
+  max_w <- do.call(grid::unit.pmax, lapply(grob_list, function(g) g$widths))
+  lapply(grob_list, function(g) { g$widths <- max_w; g })
+}
+
+# ── Plot A: KM by Management ───────────────────────────────────────────────────
+km_mgm <- survfit(Surv(time, event) ~ mgm, data = df)
+g_mgm  <- make_km(km_mgm, df, management_colors, "mgm", "Management")
+
+# ── Plot B: KM by RCP ─────────────────────────────────────────────────────────
+km_rcp <- survfit(Surv(time, event) ~ rcp, data = df)
+g_rcp  <- make_km(km_rcp, df, rcp_colors, "rcp", "Climate")
+
+# ── Variant: per-Management, curves by RCP ────────────────────────────────────
+g_variant <- lapply(levels(df$mgm), function(m) {
+  sub <- filter(df, mgm == m)
+  fit <- survfit(Surv(time, event) ~ rcp, data = sub)
+  make_km(fit, sub, rcp_colors, "rcp", "Climate", title = m)
+})
+
+# ── Assemble overview (Management | RCP side by side) ─────────────────────────
+ov_plots  <- align_widths(list(g_mgm$plot,  g_rcp$plot))
+ov_tables <- align_widths(list(g_mgm$table, g_rcp$table))
+
+overview <- arrangeGrob(
+  ov_plots[[1]],  ov_plots[[2]],
+  ov_tables[[1]], ov_tables[[2]],
+  ncol    = 2,
+  heights = c(3, 1),
+  top     = textGrob("Forest Recovery — Overview",
+                     gp = gpar(fontsize = 13, fontface = "bold"))
+)
+
+# ── Assemble variant (5 management panels) ────────────────────────────────────
+var_plots  <- align_widths(lapply(g_variant, `[[`, "plot"))
+var_tables <- align_widths(lapply(g_variant, `[[`, "table"))
+
+variant <- arrangeGrob(
+  grobs   = c(var_plots, var_tables),
+  ncol    = 5,
+  heights = c(3, 1),
+  top     = textGrob("Forest Recovery by Management — Climate Breakdown",
+                     gp = gpar(fontsize = 13, fontface = "bold"))
+)
+
+# ── Print ──────────────────────────────────────────────────────────────────────
+grid.newpage(); grid.draw(overview)
+grid.newpage(); grid.draw(variant)
+
+
+
+
+#13#############################################################################
+#     TEST P13  TWO-WAY ANOVA ON NEW K-M CURVE INITIAL DF WITH PENALTIES
+################################################################################
+
+THIS IS MAKING THE TOW-WAY ANOVA ON RECOVERY METRICS NORMILIZING THE SCALE THROUGH THE Z-SCORE, FIXING THE NA VALUES
+NOTE HERE IMPORTANT WE USED BASICALLY THE SAME TABLE OF BEFORE BUT MADE BY LAURA 2026-04-21 SEE THE CSV FILE NAME
+
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(forcats)
+
+# ----------------
+# 1. PREPARE DATA
+# ----------------
+df_long <- a |>
+  mutate(
+    rcp = recode(rcp, `-` = "refclim"),
+    Management = as.factor(mgm),
+    Climate    = as.factor(rcp),
+    Variable   = "Recovery Time [years]",
+    Value      = rt_imp
+  ) |>
+  select(model, windcase, Management, Climate, Variable, Value)
+
+# ----------------
+# 2. Z-SCORE (same logic as before)
+# ----------------
+df_long <- df_long |>
+  group_by(Variable) |>
+  mutate(Value = scale(Value)[,1]) |>
+  ungroup()
+
+# ----------------
+# 3. DISCRIMINATORY POWER
+# ----------------
+disc_power <- df_long |>
+  group_by(Variable, Climate, Management) |>
+  summarise(cell_mean = mean(Value, na.rm = TRUE), .groups = "drop") |>
+  group_by(Variable) |>
+  summarise(disc = sd(cell_mean), .groups = "drop")
+
+# ----------------
+# 4. TWO-WAY ANOVA
+# ----------------
 anova_res <- df_long |>
   group_by(Variable) |>
   group_modify(~ {
-    fit <- art(Value ~ Management * Climate, data = .x)
-    a   <- anova(fit)
-    
-    # ART anova() returns a data frame with Term column, not rownames
-    a   <- as.data.frame(a)
-    rownames(a) <- trimws(a$Term)
-    
-    ss_total <- sum(a$`Sum Sq`)
-    
+    fit <- aov(Value ~ Management * Climate, data = .x)
+    s   <- summary(fit)[[1]]
+    rownames(s) <- trimws(rownames(s))
+    ss_total <- sum(s$`Sum Sq`)
     tibble(
-      pct_mgmt    = a["Management",         "Sum Sq"] / ss_total * 100,
-      pct_climate = a["Climate",            "Sum Sq"] / ss_total * 100,
-      pct_inter   = a["Management:Climate", "Sum Sq"] / ss_total * 100,
-      pct_resid   = 100 - 
-        a["Management",         "Sum Sq"] / ss_total * 100 -
-        a["Climate",            "Sum Sq"] / ss_total * 100 -
-        a["Management:Climate", "Sum Sq"] / ss_total * 100,
-      F_mgmt      = a["Management",         "F value"],
-      F_climate   = a["Climate",            "F value"],
-      F_inter     = a["Management:Climate", "F value"],
-      p_mgmt      = a["Management",         "Pr(>F)"],
-      p_climate   = a["Climate",            "Pr(>F)"],
-      p_inter     = a["Management:Climate", "Pr(>F)"]
+      pct_mgmt    = s["Management",         "Sum Sq"] / ss_total * 100,
+      pct_climate = s["Climate",            "Sum Sq"] / ss_total * 100,
+      pct_inter   = s["Management:Climate", "Sum Sq"] / ss_total * 100,
+      pct_resid   = s["Residuals",          "Sum Sq"] / ss_total * 100,
+      F_mgmt      = s["Management",         "F value"],
+      F_climate   = s["Climate",            "F value"],
+      F_inter     = s["Management:Climate", "F value"],
+      p_mgmt      = s["Management",         "Pr(>F)"],
+      p_climate   = s["Climate",            "Pr(>F)"],
+      p_inter     = s["Management:Climate", "Pr(>F)"]
     )
-  }) |> ungroup()
+  }) |>
+  ungroup()
+
+# ----------------
+# 5. COMBINE RESULTS
+# ----------------
+results <- disc_power |>
+  left_join(anova_res, by = "Variable") |>
+  mutate(
+    Variable = fct_reorder(Variable, disc),
+    sig = case_when(
+      p_mgmt < 0.001 ~ "***",
+      p_mgmt < 0.01  ~ "**",
+      p_mgmt < 0.05  ~ "*",
+      TRUE           ~ "ns"
+    )
+  )
+
+max_sd <- max(results$disc)
+
+# ----------------
+# 6. COLORS
+# ----------------
+var_colors <- c(
+  "Recovery Time [years]" = "#1D9E75"
+)
+
+src_colors <- c(
+  "Management"              = "#185FA5",
+  "Climate"                 = "#97C459",
+  "Interaction"             = "#D0CECA",
+  "Residual (within-cell)"  = "#787670"
+)
+
+# ----------------
+# 7. PANEL A
+# ----------------
+pA <- ggplot(results,
+             aes(x = disc, y = Variable, fill = Variable)) +
+  geom_col(width = 0.6) +
+  geom_text(aes(label = sig), hjust = -0.3, size = 3.5) +
+  scale_fill_manual(values = var_colors) +
+  scale_x_continuous(expand = c(0, 0),
+                     limits = c(0, max_sd * 1.15)) +
+  labs(x = "Discriminatory power (SD of cell means, z-scored)",
+       y = NULL, title = "a") +
+  theme_minimal(base_size = 11) +
+  theme(legend.position = "none")
+
+# ----------------
+# 8. PANEL B
+# ----------------
+plot_decomp <- results |>
+  select(Variable, pct_mgmt, pct_climate, pct_inter, pct_resid) |>
+  pivot_longer(cols = starts_with("pct_"),
+               names_to  = "source",
+               values_to = "pct") |>
+  mutate(
+    source = recode(source,
+                    pct_mgmt    = "Management",
+                    pct_climate = "Climate",
+                    pct_inter   = "Interaction",
+                    pct_resid   = "Residual (within-cell)"),
+    source = factor(source,
+                    levels = rev(c("Management", "Climate",
+                                   "Interaction", "Residual (within-cell)")))
+  )
+
+pB <- ggplot(plot_decomp,
+             aes(x = pct, y = Variable, fill = source)) +
+  geom_col(position = "stack") +
+  scale_fill_manual(values = src_colors, name = "Variance source") +
+  scale_x_continuous(expand = c(0, 0), limits = c(0, 101),
+                     labels = function(x) paste0(x, "%")) +
+  labs(x = "Variance decomposition (%)",
+       y = NULL, title = "b") +
+  theme_minimal(base_size = 11) +
+  theme(axis.text.y = element_blank(),
+        legend.position = "bottom") +
+  guides(fill = guide_legend(nrow = 2))
+
+# ----------------
+# 9. FINAL
+# ----------------
+final_panel <- pA + pB
+final_panel
 
 
-# ── Diagnostic test (run per variable to check ART alignment) ────────────────
-test <- df_long |> filter(Variable == "Normalized AUC")
-# test <- df_long |> filter(Variable == "Total Disturbance Impact [m3/ha]")
-# test <- df_long |> filter(Variable == "Recovery Time [years]")
 
-fit_art <- art(Value ~ Management * Climate, data = test)
-summary(fit_art)   # check: aligned response columns should have mean ~0
-anova(fit_art)
+#14#############################################################################
+#  TEST P14  MEAN DIFFERENCE FROM REFERENCE AND ORIGINAL DF RT WITH PENALTIES
+################################################################################
+
+HERE WE APPLIED THE SAME CODE AND ANALYSIS LAURA MADE AT THE BEGINNING OF
+THE PROBLEM TO CONFIGURATE THE SURVIVAL PREDICTION ON RECOVERY TIME OF NOT RECOVERED CASES.
+SIMPLE MEAN DIFFERENCE FROM REFERENCE CLIMATE AND BAU MANAGEMENT WITH PENALTIES AND SENSITIVITY TEST
+
+library(tidyverse)
+library(survival)
+library(survminer)
+library(dplyr)
+library(ggplot2)
+
+# Load data
+df <- read_csv("C:/Users/baldo/Documents/GitHub/RESONATE_WP4/multifunctionality/ANOVA_discrimination_analysis/20260421_impact_recoverytime_auc.csv")
+
+# ── 0. Parameters ─────────────────────────────────────────────────────────────
+sim_horizon <- 50
+penalty_primary    <- 50   # primary imputation:  rt = sim_horizon (boundary)
+penalty_sensitivity <- 75  # sensitivity check:   rt = 75 (beyond window)
+
+management_colors <- c(
+  "ADAPTATION"   = "#E69F00",
+  "BAU"          = "#185FA5",
+  "BIOECONOMY"   = "#1D9E75",
+  "CONSERVATION" = "#D85A30",
+  "UNMANAGED"    = "#787670"
+)
+
+# ── 1. Recode & flag non-recoverers ──────────────────────────────────────────
+df <- df |>
+  mutate(
+    rcp       = recode(rcp, `-` = "refclim"),
+    group_key = paste(mgm, rcp, model, windcase, sep = "_"),
+    # TRUE for the 27 cases that never recovered
+    is_censored = is.infinite(rt) | is.na(rt)
+  )
+
+# Sanity check: confirm censored cases are clustered in rcp45
+df |>
+  filter(is_censored) |>
+  count(rcp, mgm) |>
+  print()
+
+# ── 2. Impute rt — primary & sensitivity ─────────────────────────────────────
+# Primary: rt_imp = 50 for non-recoverers
+# Sensitivity: rt_imp_sens = 75 for non-recoverers
+df <- df |>
+  mutate(
+    rt_imp      = if_else(is_censored, as.numeric(penalty_primary),    rt),
+    rt_imp_sens = if_else(is_censored, as.numeric(penalty_sensitivity), rt)
+  )
+
+# Quick summary: compare distributions with and without imputation
+cat("\n── rt distribution summary (recovered cases only) ──\n")
+df |> filter(!is_censored) |> summarise(
+  n    = n(),
+  mean = mean(rt),
+  sd   = sd(rt),
+  med  = median(rt),
+  min  = min(rt),
+  max  = max(rt)
+) |> print()
+
+cat("\n── rt_imp distribution summary (all cases, primary imputation) ──\n")
+df |> summarise(
+  n           = n(),
+  n_imputed   = sum(is_censored),
+  mean        = mean(rt_imp),
+  sd          = sd(rt_imp),
+  med         = median(rt_imp),
+  min         = min(rt_imp),
+  max         = max(rt_imp)
+) |> print()
+
+# ── 3. Long format for ANOVA/discrimination plot ──────────────────────────────
+# Mirrors the structure of your existing impact / one.minus.norm.auc analysis
+# Three resilience variables: impact, one.minus.norm.auc, rt_imp
+df_long <- df |>
+  select(mgm, rcp, model, windcase, group_key, is_censored,
+         impact, one.minus.norm.auc, rt_imp, rt_imp_sens) |>
+  pivot_longer(
+    cols      = c(impact, one.minus.norm.auc, rt_imp),
+    names_to  = "variable",
+    values_to = "value"
+  ) |>
+  mutate(
+    Management = factor(mgm),
+    Climate    = factor(rcp)
+  )
+
+# ── 4. Compute mean differences vs. reference climate (refclim) ──────────────
+# Same logic as your existing discrimination plot
+ref_means <- df_long |>
+  filter(rcp == "refclim") |>
+  group_by(mgm, variable) |>
+  summarise(ref_mean = mean(value, na.rm = TRUE), .groups = "drop")
+
+mean_diffs <- df_long |>
+  filter(rcp != "refclim") |>
+  group_by(mgm, rcp, variable) |>
+  summarise(
+    mean_val = mean(value, na.rm = TRUE),
+    se_val   = sd(value, na.rm = TRUE) / sqrt(n()),
+    .groups  = "drop"
+  ) |>
+  left_join(ref_means, by = c("mgm", "variable")) |>
+  mutate(
+    mean_diff = mean_val - ref_mean,
+    ci_low    = mean_diff - 1.96 * se_val,
+    ci_high   = mean_diff + 1.96 * se_val
+  )
+
+# ── 5. Sensitivity check: repeat with rt_imp_sens ────────────────────────────
+df_long_sens <- df |>
+  select(mgm, rcp, model, windcase, is_censored,
+         impact, one.minus.norm.auc, rt_imp_sens) |>
+  rename(rt_imp = rt_imp_sens) |>          # reuse same column name for pivot
+  pivot_longer(
+    cols      = c(impact, one.minus.norm.auc, rt_imp),
+    names_to  = "variable",
+    values_to = "value"
+  ) |>
+  mutate(Management = factor(mgm), Climate = factor(rcp))
+
+ref_means_sens <- df_long_sens |>
+  filter(rcp == "refclim") |>
+  group_by(mgm, variable) |>
+  summarise(ref_mean = mean(value, na.rm = TRUE), .groups = "drop")
+
+mean_diffs_sens <- df_long_sens |>
+  filter(rcp != "refclim") |>
+  group_by(mgm, rcp, variable) |>
+  summarise(
+    mean_val = mean(value, na.rm = TRUE),
+    se_val   = sd(value, na.rm = TRUE) / sqrt(n()),
+    .groups  = "drop"
+  ) |>
+  left_join(ref_means_sens, by = c("mgm", "variable")) |>
+  mutate(
+    mean_diff = mean_val - ref_mean,
+    ci_low    = mean_diff - 1.96 * se_val,
+    ci_high   = mean_diff + 1.96 * se_val,
+    imputation = "sensitivity (rt=75)"
+  )
+
+mean_diffs <- mean_diffs |> mutate(imputation = "primary (rt=50)")
+
+# Combined for sensitivity comparison
+mean_diffs_combined <- bind_rows(mean_diffs, mean_diffs_sens)
+
+# ── 6. Main discrimination plot (primary imputation) ─────────────────────────
+# Replicates your existing plot style, now with rt_imp as third variable
+variable_labels <- c(
+  "impact"           = "Impact",
+  "one.minus.norm.auc" = "one.minus.norm.auc",
+  "rt_imp"           = "Recovery time (rt)"
+)
+
+plot_primary <- ggplot(
+  mean_diffs |> mutate(variable = recode(variable, !!!variable_labels)),
+  aes(x = variable, y = mean_diff, fill = rcp)
+) +
+  geom_col(position = position_dodge(width = 0.7), width = 0.6) +
+  geom_errorbar(
+    aes(ymin = ci_low, ymax = ci_high),
+    position = position_dodge(width = 0.7),
+    width = 0.25
+  ) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "grey40") +
+  # Flag that rt non-recoverers are imputed
+  annotate("text", x = 3, y = Inf, vjust = 1.5, hjust = 0.5,
+           label = "rt non-recoverers\nimputed at 50 yr",
+           size = 2.5, color = "grey40", fontface = "italic") +
+  scale_fill_manual(
+    values = c("rcp45" = "#56B4E9", "rcp85" = "#E69F00"),
+    labels = c("rcp45" = "RCP 4.5", "rcp85" = "RCP 8.5")
+  ) +
+  facet_grid(variable ~ mgm, scales = "free_y", switch = "y") +
+  labs(
+    title = "Mean difference from reference climate — Impact, AUC, Recovery Time",
+    x     = "Variable",
+    y     = "Mean difference",
+    fill  = "RCP",
+    caption = paste0(
+      "Note: 27 non-recovering cases under RCP4.5 imputed at rt = ",
+      penalty_primary, " yr (simulation horizon).\n",
+      "Sensitivity analysis with rt = ", penalty_sensitivity,
+      " yr available in plot_sensitivity object."
+    )
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    legend.position  = "right",
+    strip.text       = element_text(face = "bold", size = 11),
+    strip.background = element_rect(fill = "grey90", color = "black"),
+    axis.text.x      = element_text(angle = 45, hjust = 1),
+    panel.border     = element_rect(color = "black", fill = NA, size = 0.5),
+    plot.caption     = element_text(size = 8, color = "grey40", hjust = 0)
+  )
+
+print(plot_primary)
+
+# ── 7. Sensitivity comparison plot ───────────────────────────────────────────
+# Shows only rt_imp to highlight sensitivity of imputation choice
+plot_sensitivity <- mean_diffs_combined |>
+  filter(variable == "rt_imp") |>
+  mutate(variable = recode(variable, !!!variable_labels)) |>
+  ggplot(aes(x = rcp, y = mean_diff, fill = imputation)) +
+  geom_col(position = position_dodge(width = 0.7), width = 0.6) +
+  geom_errorbar(
+    aes(ymin = ci_low, ymax = ci_high),
+    position = position_dodge(width = 0.7),
+    width = 0.25
+  ) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "grey40") +
+  scale_fill_manual(values = c(
+    "primary (rt=50)"      = "#009E73",
+    "sensitivity (rt=75)"  = "#CC79A7"
+  )) +
+  facet_wrap(~ mgm, nrow = 1) +
+  labs(
+    title   = "Sensitivity analysis — effect of imputation value on Recovery Time (rt)",
+    x       = "Climate scenario",
+    y       = "Mean difference from reference",
+    fill    = "Imputation"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    legend.position  = "right",
+    strip.text       = element_text(face = "bold", size = 11),
+    strip.background = element_rect(fill = "grey90", color = "black"),
+    panel.border     = element_rect(color = "black", fill = NA, size = 0.5)
+  )
+
+print(plot_sensitivity)
+
+# ── 8. Export imputed dataset for downstream use (survival analysis etc.) ─────
+# This is the clean version of df ready for your Cox/AFT pipeline
+df_final <- df |>
+  select(mgm, rcp, model, windcase, group_key,
+         impact, one.minus.norm.auc,
+         rt, rt_imp, rt_imp_sens, is_censored)
+
+# Uncomment to save:
+# write_csv(df_final, "C:/Users/baldo/Documents/GitHub/RESONATE_WP4/multifunctionality/ANOVA_discrimination_analysis/df_with_rt_imputed.csv")
+
+
+
+#15#############################################################################
+#       TEST P15  COX MODELS WITH REFERENCES CLIM AND BAU
+################################################################################
+
+HERE THERE IS THE CORRECTION FOR THE COX MODEL WE APPLIED TILL NOW MADE BY LAURA
+THE POINT OF CORRECTION COMES EXPECIALLY WHEN IT IS USED AS REFERENCES REFCLIM AND BAU
+ALSO THERE IS A COMPARISON BETWEEN THE TWO COX MODELS WITH STAT TEST OF PERFORMANCES
+
+
+library(tidyverse)
+library(survival)
+library(survminer)
+library(dplyr)
+library(ggplot2)
+
+# Load data
+df <- read_csv("C:/Users/baldo/Documents/GitHub/RESONATE_WP4/multifunctionality/ANOVA_discrimination_analysis/20260421_impact_recoverytime_auc.csv")
+
+# ── 0. Parameters ─────────────────────────────────────────────────────────────
+sim_horizon <- 50
+
+
+management_colors <- c(
+  "ADAPTATION"   = "#E69F00",
+  "BAU"          = "#185FA5",
+  "BIOECONOMY"   = "#1D9E75",
+  "CONSERVATION" = "#D85A30",
+  "UNMANAGED"    = "#787670"
+)
+
+# ── 1. Recode & flag non-recoverers ──────────────────────────────────────────
+df <- df |>
+  mutate(
+    rcp       = recode(rcp, `-` = "refclim"),
+    group_key = paste(mgm, rcp, model, windcase, sep = "_"),
+    # TRUE for the 27 cases that never recovered
+    is_censored = is.infinite(rt) | is.na(rt)
+  )
+
+# Sanity check: confirm censored cases are clustered in rcp45
+df |>
+  filter(is_censored) |>
+  count(rcp, mgm) |>
+  print()
+
+# ── 2. Impute rt — primary & sensitivity ─────────────────────────────────────
+# Primary: rt_imp = 50 for non-recoverers
+# Sensitivity: rt_imp_sens = 75 for non-recoverers
+df <- df |>
+  mutate(
+    rt_imp      = if_else(is_censored, as.numeric(sim_horizon),    rt)
+  )
+
+df <- df %>%  mutate(  event = ifelse(is_censored, 0, 1)  )
+
+#-------------------------------------------------------------- SET REFERENCE CASES:
+# For the Cox model need to set baseline which they compare things: 
+# Compared to BAU, how does each management change recovery rate?
+# Compared to REFLCIM, how does each rcp change recovery rate?
+
+df$mgm <- relevel(as.factor(df$mgm), ref = "BAU")
+df$rcp <- relevel(as.factor(df$rcp), ref = "refclim")
+
+# the first one here is the reference:
+levels(as.factor(df$mgm))
+levels(as.factor(df$rcp))
+#-------------------------------------------------------------------------------------------
+surv_obj <- Surv( time = df$rt_imp,  event = df$event)
+
+# --- FIT AN ADDITIVE MODEL:
+
+#This estimates:
+## management effects adjusted for climate
+## climate effects adjusted for management
+
+cox1 <- coxph(  surv_obj ~ mgm + rcp ,  data = df)
+
+# --- FIT INTERACTION MODEL
+# Does management effectiveness change under climate change?
+cox2 <- coxph(surv_obj ~ mgm * rcp ,  data = df)
+
+summary(cox1)
+summary(cox2)
+
+
+#---- COMAPRE THE MODELS:
+#If interaction improves model substantially → climate modifies management effectiveness.
+#If not → management and climate effects are mostly additive.
+
+AIC(cox1, cox2)
+anova(cox1, cox2, test = "LRT")
+
+# PRoportional hazards assumption Check proportional hazards
+cox.zph(cox2)
+
+
+#Non-significant p-values --> PH assumption OK.
+
+#Significant p-values -->Effects change over time.
+#Ecologically this may mean:  management helps early but not late recovery.
+
+
+#---------------------------- GRAPHICAL OPTIONS:
+
+library(broom)
+
+#--- COX1
+
+hr_df1 <- broom::tidy(cox1, exponentiate = TRUE, conf.int = TRUE)
+ggplot(hr_df1,
+       aes(x = estimate,
+           y = reorder(term, estimate))) +
+  geom_point(size = 3) +
+  geom_errorbarh(aes(xmin = conf.low,      xmax = conf.high),     height = 0.2) +
+  geom_vline(xintercept = 1, linetype = "dashed",        color = "red") +
+  scale_x_log10() +
+  labs(   x = "Hazard ratio (log scale)",   y = "",   title = "Effects on recovery rate") +
+  theme_bw(base_size = 14)
+
+#--- COX2
+hr_df2 <- broom::tidy(cox2, exponentiate = TRUE, conf.int = TRUE)
+ggplot(hr_df2,
+       aes(x = estimate,
+           y = reorder(term, estimate))) +
+  geom_point(size = 3) +
+  geom_errorbarh(aes(xmin = conf.low,    xmax = conf.high),         height = 0.2) +
+  geom_vline(xintercept = 1,       linetype = "dashed",            color = "red") +
+  scale_x_log10() +
+  labs(  x = "Hazard ratio (log scale)",  y = "",   title = "Effects on recovery rate"  ) +
+  theme_bw(base_size = 14)
+
+
+#-------------------------------------------- Interaction plot
+newdat <- expand.grid(
+  mgm = levels(df$mgm),
+  rcp = levels(df$rcp)
+)
+
+sf <- survfit(cox2, newdata = newdat)
+med <- surv_median(sf)
+med$mgm <- newdat$mgm
+med$rcp <- newdat$rcp
+
+ggplot(med,   aes(x = rcp,           y = median,           color = mgm,           group = mgm)) +
+  geom_point(size = 3) +
+  geom_line(size = 1.2) +
+  
+  scale_color_manual(values = management_colors) +
+  
+  labs(    y = "Predicted recovery time",
+           x = "Climate scenario"
+  ) +
+  
+  theme_bw(base_size = 14)
+
+#------------------------------ maybe these are below not meaningful... need to check it
+
+sf <- survfit(cox1, newdata = newdat)
+med <- surv_median(sf)
+med$mgm <- newdat$mgm
+med$rcp <- newdat$rcp
+
+ggplot(med,   aes(x = rcp,           y = median,           color = mgm,           group = mgm)) +
+  geom_point(size = 3) +
+  geom_line(size = 1.2) +
+  
+  scale_color_manual(values = management_colors) +
+  
+  labs(    y = "Predicted recovery time",
+           x = "Climate scenario"
+  ) +
+  
+  theme_bw(base_size = 14)
+
+#---------- ???For diagnostics, visualize Schoenfeld residuals:
+ph_test <- cox.zph(cox2)
+
+ggcoxzph(ph_test)
