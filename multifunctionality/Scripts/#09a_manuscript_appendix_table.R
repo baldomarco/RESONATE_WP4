@@ -3,6 +3,7 @@
 
 library(readr)
 library(dplyr)
+library(tidyr)
 
 # Working directory
 # path <- ""C:/Users/baldo/Documents/GitHub/RESONATE_WP4/multifunctionality/Tables/"
@@ -83,6 +84,65 @@ summary_tab_mean <- summary_tab %>%
   ))
 
 
+# --- --     Create a differential publication table      --  --- #
+
+mf_full <- read_csv("C:/Users/baldo/Documents/GitHub/RESONATE_WP4/multifunctionality/Tables/20260415_MF_ES_score.csv")
+
+str(mf_full)
+
+# Make the relative differential analysis from reference climate
+
+rel_individual <- mf_full %>%
+  mutate(rcp = ifelse(rcp == "-", "refclim", rcp)) %>%
+  group_by(mgm, windcase) %>%
+  mutate(
+    Climate_ref = Climate[rcp == "refclim"],
+    Production_ref = Production[rcp == "refclim"],
+    Water_ref = Water[rcp == "refclim"],
+    Biodiversity_ref = Biodiversity[rcp == "refclim"],
+    score_ref = score[rcp == "refclim"]
+  ) %>%
+  ungroup() %>%
+  filter(rcp != "refclim") %>%
+  mutate(
+    Climate_diff = 100 * (Climate - Climate_ref) / Climate_ref,
+    Production_diff = 100 * (Production - Production_ref) / Production_ref,
+    Water_diff = 100 * (Water - Water_ref) / Water_ref,
+    Biodiversity_diff = 100 * (Biodiversity - Biodiversity_ref) / Biodiversity_ref,
+    score_diff = 100 * (score - score_ref) / score_ref
+  )
+
+
+# Isolate the mean - min - max values per mgm, rcp and ES + MLF score
+rel_summary <- rel_individual %>%
+  select(rcp, mgm,
+         Climate_diff, Production_diff, Water_diff, Biodiversity_diff,
+         score_diff) %>%
+  pivot_longer(
+    cols = -c(rcp, mgm),
+    names_to = "indicator",
+    values_to = "value"
+  ) %>%
+  group_by(rcp, mgm, indicator) %>%
+  summarise(
+    mean = mean(value, na.rm = TRUE),
+    min  = min(value, na.rm = TRUE),
+    max  = max(value, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  arrange(rcp, mgm, indicator)
+
+# check
+rel_summary
+
+# Wide more readable format
+rel_summary_wide <- rel_summary %>%
+  tidyr::pivot_wider(
+    names_from = indicator,
+    values_from = c(mean, min, max)
+  )
+
+
 # Save the summary table
 library(openxlsx)
 
@@ -109,6 +169,17 @@ write.xlsx(
   overwrite = TRUE
 )
 
+
+# Make summary table of differential analysis on MLF
+write.xlsx(
+  rel_summary_wide,
+  file = file.path(
+    "C:/Users/baldo/Documents/GitHub/RESONATE_WP4/multifunctionality/Tables/",
+    "20260606_MF_ES_Diff_Score.xlsx"
+  ),
+  sheetName = "20260415_MF_ES_Diff_Score",
+  overwrite = TRUE
+)
 
 
 #-------------------------------------------------------------------------------

@@ -7,6 +7,11 @@
 #    SECOND ANALYSIS ON RECOVERY   
 ################################################################################
 
+library(tidyverse)
+library(readxl)
+library(patchwork)
+library(ggplot2)
+
 THIS IS MAKING THE TOW-WAY ANOVA ON RECOVERY METRICS BUT WITHOUT FIXING THE NA VALUES NEITHER THE Z-SCORE
 
 # Load data

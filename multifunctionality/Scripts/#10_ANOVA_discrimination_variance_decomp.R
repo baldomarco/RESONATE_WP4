@@ -127,8 +127,8 @@ svc_colors <- c(
 src_colors <- c(
   Management              = '#185FA5',
   Climate                 = '#97C459',
-  Interaction              = '#D0CECA',
-  `Residual (within-cell)` = '#787670'
+  Interaction              = '#787670',
+  `Residual (within-cell)` = '#D0CECA'
 )
 
 
