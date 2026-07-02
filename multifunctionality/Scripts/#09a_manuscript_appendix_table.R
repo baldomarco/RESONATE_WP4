@@ -1,9 +1,9 @@
 ################################################################################
 ###
-### Code illustrating the Appendix analyses in:
+### Code illustrating the Appendix table analyses in:
 ###
 ###     Marco Baldo - Laura Dobor 
-###             15-04-2026
+###             15-06-2026
 ### 
 ###
 ###
