@@ -29,27 +29,23 @@ ES_tab_csv <- read.csv(
 
 # Change variable names
 variable_mapping <- list(
-  annual.harvest = c("harvest", "Timber"),
-  annual.increment = c("increment", "Timber"),
-  LAI = c("LAI", "Water"),
-  standing.volume = c("Standing volume", "Water"),
-  standing.volume.decidious = c("Standing volume", "Water"),
-  NEP = c("NEP", "Climate"),
-  carbonstock = c("Total carbon", "Climate"),
-  deadwood.c.ag = c("Deadwood carbon", "Biodiversity"),
-  shannon_BA_landscape = c("Shannon", "Biodiversity"),
-  shannon_VOL_landscape = c("Shannon", "Biodiversity")
+  annual.harvest       = c("harvest", "Timber"),
+  annual.increment     = c("increment", "Timber"),
+  LAI                  = c("LAI", "Water"),
+  standing.volume      = c("Standing volume", "Water"),
+  NEP                  = c("NEP", "Climate"),
+  carbonstock          = c("Total carbon", "Climate"),
+  deadwood.c.ag        = c("Deadwood carbon", "Biodiversity"),
+  shannon_BA_landscape = c("Shannon", "Biodiversity")
 )
 
-
 # Filter to have only interested variables and create the scenario column
-
 ES_tab_csv_filtered <- ES_tab_csv %>%
   filter(name %in% names(variable_mapping)) %>%
   mutate(
     Climate = rcp,
     Management = mgm,
-    Scenario = paste(model, windcase, sep = "_"),   # create the scenario column
+    Scenario = paste(model, windcase, sep = "_"),
     
     Variable = sapply(name, \(x) variable_mapping[[x]][1]),
     `Ecosystem service` = sapply(name, \(x) variable_mapping[[x]][2]),
@@ -58,20 +54,24 @@ ES_tab_csv_filtered <- ES_tab_csv %>%
     # unit correction (kg -> tons)
     Value = case_when(
       name %in% c("carbonstock", "deadwood.c.ag", "NEP") ~ Value / 1000,
-      #name %in% c("NEP") ~ Value / 100,   # careful here isn't in tons!!
-      TRUE ~ Value,
+      TRUE ~ Value
     )
   ) %>%
   dplyr::select(Climate, Management, Scenario,
-         `Ecosystem service`, Variable, Value)
+                `Ecosystem service`, Variable, Value)
 
+# Check: one value per scenario and variable (must return 0 rows)
+dup_check <- ES_tab_csv_filtered %>%
+  count(Climate, Management, Scenario, Variable) %>%
+  filter(n > 1)
+stopifnot(nrow(dup_check) == 0)
 
-# Aggregate at scenarion level and save
-
+# Aggregate at scenario level and save
 ES_scenario <- ES_tab_csv_filtered %>%
   group_by(Scenario, Climate, Management,
            `Ecosystem service`, Variable) %>%
   summarise(Value = mean(Value, na.rm = TRUE), .groups = "drop")
+
 
 # Saving
 write.xlsx(
